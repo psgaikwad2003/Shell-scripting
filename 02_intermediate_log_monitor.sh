@@ -180,8 +180,10 @@ rotate_log() {
     mv "$WATCH_LOG" "$ARCHIVE_NAME"
     touch "$WATCH_LOG"    # create fresh empty log
     gzip "$ARCHIVE_NAME" &    # compress in the background (&)
+    local GZIP_PID=$!
+    disown "$GZIP_PID" 2>/dev/null || true   # detach so the EXIT trap won't kill it
 
-    write_log "INFO" "Rotation complete. Compressing old log in background (PID: $!)."
+    write_log "INFO" "Rotation complete. Compressing old log in background (PID: ${GZIP_PID})."
     # $! holds the PID of the last background command
 }
 
@@ -201,8 +203,12 @@ analyze_log() {
     TOTAL_LINES=$(wc -l < "$WATCH_LOG")
 
     # grep -c counts matching lines (-i = case insensitive)
-    ERROR_COUNT=$(grep -icE "error|critical|fatal|failed|panic|oom" "$WATCH_LOG" 2>/dev/null || echo 0)
-    WARN_COUNT=$(grep -ic "warn" "$WATCH_LOG" 2>/dev/null || echo 0)
+    # Use '|| true' so grep exit-1 (no match) does not abort the script
+    # under 'set -e'. Default to 0 when the result is empty.
+    ERROR_COUNT=$(grep -icE "error|critical|fatal|failed|panic|oom" "$WATCH_LOG" 2>/dev/null || true)
+    ERROR_COUNT=${ERROR_COUNT:-0}
+    WARN_COUNT=$(grep -ic "warn" "$WATCH_LOG" 2>/dev/null || true)
+    WARN_COUNT=${WARN_COUNT:-0}
 
     # ── Write report header ──
     {
@@ -227,7 +233,8 @@ analyze_log() {
     for KEYWORD in "${ALERT_KEYWORDS[@]}"; do    # iterate over the config array
         # grep -i ignores case; wc -l counts; tr removes whitespace
         local COUNT
-        COUNT=$(grep -i "$KEYWORD" "$WATCH_LOG" 2>/dev/null | wc -l | tr -d ' ')
+        COUNT=$(grep -i "$KEYWORD" "$WATCH_LOG" 2>/dev/null | wc -l | tr -d ' ') || true
+        COUNT=${COUNT:-0}
         printf "  %-12s : %d occurrences\n" "$KEYWORD" "$COUNT" >> "$REPORT"
     done
 
@@ -343,7 +350,7 @@ show_menu() {
                 echo ""
                 echo -e "${CYAN}  Last 20 lines of ${WATCH_LOG}:${RESET}"
                 echo "  ──────────────────────────────────────────"
-                tail -20 "$WATCH_LOG"
+                tail -n 20 "$WATCH_LOG"
                 ;;
             5)
                 write_log "INFO" "User chose to exit."
