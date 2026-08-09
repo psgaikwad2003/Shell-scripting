@@ -189,7 +189,9 @@ cmd_gitpush() {
   log_success "Committed: \"${COMMIT_MSG}\""
 
   # Push with upstream tracking
-  git push --set-upstream origin "$BRANCH" 2>&1 | tail -5
+  # Note: avoid piping directly into 'tail' — it would swallow the exit code
+  # and silently hide push failures. Let output stream normally instead.
+  git push --set-upstream origin "$BRANCH"
   log_success "Pushed to origin/${BRANCH} successfully!"
 
   print_separator
