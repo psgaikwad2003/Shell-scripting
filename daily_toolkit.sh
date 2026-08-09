@@ -126,10 +126,12 @@ cmd_backup() {
 
   # Compress with progress
   log_info "Compressing... (this may take a moment)"
+  # '--exclude-vcs' is a GNU tar extension that skips all VCS metadata dirs
+  # (.git, .svn, .hg, etc.). Fall back to explicit excludes for portability.
   tar -czf "${BACKUP_DIR}/${ARCHIVE_NAME}" \
       --exclude='*.tmp' \
       --exclude='node_modules' \
-      --exclude='.git' \
+      --exclude-vcs \
       "$SOURCE_DIR" 2>/dev/null
 
   # Verify and report size
