@@ -87,7 +87,12 @@ cmd_sysinfo() {
   # Top 5 CPU-hungry processes
   print_separator
   echo -e "${BOLD}  🔥  Top 5 Processes by CPU${RESET}"
-  ps aux --sort=-%cpu 2>/dev/null | head -6 | awk 'NR==1 {print "  "$0} NR>1 {printf "  %-12s %5s%%  %s\n", $1, $3, $11}'
+  # ps --sort is Linux/procps-only; fall back to sort -k3 on BSD/macOS
+  if ps aux --sort=-%cpu &>/dev/null 2>&1; then
+    ps aux --sort=-%cpu 2>/dev/null | head -6 | awk 'NR==1 {print "  "$0} NR>1 {printf "  %-12s %5s%%  %s\n", $1, $3, $11}'
+  else
+    ps aux 2>/dev/null | sort -k3 -rn | head -5 | awk '{printf "  %-12s %5s%%  %s\n", $1, $3, $11}'
+  fi
 
   # Network interfaces
   print_separator
