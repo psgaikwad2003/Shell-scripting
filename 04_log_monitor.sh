@@ -33,8 +33,12 @@ analyze() {
   REPORT="$REPORT_DIR/report_$(date '+%Y%m%d_%H%M%S').txt"
 
   TOTAL=$(wc -l < "$LOG_FILE")
-  ERRORS=$(grep -icE "error|critical|fatal|failed" "$LOG_FILE" 2>/dev/null || echo 0)
-  WARNS=$(grep -ic "warn" "$LOG_FILE" 2>/dev/null || echo 0)
+  # Use grep with '|| true' so a zero-match (exit 1) does not abort the script
+  # under 'set -e'. Then fall back to 0 if the variable ends up empty.
+  ERRORS=$(grep -icE "error|critical|fatal|failed" "$LOG_FILE" 2>/dev/null || true)
+  ERRORS=${ERRORS:-0}
+  WARNS=$(grep -ic "warn" "$LOG_FILE" 2>/dev/null || true)
+  WARNS=${WARNS:-0}
 
   {
     echo "=============================="
@@ -49,7 +53,8 @@ analyze() {
     echo ""
     echo "  --- Keyword Counts ---"
     for KW in "${KEYWORDS[@]}"; do
-      COUNT=$(grep -ic "$KW" "$LOG_FILE" 2>/dev/null || echo 0)
+      COUNT=$(grep -ic "$KW" "$LOG_FILE" 2>/dev/null || true)
+      COUNT=${COUNT:-0}
       printf "  %-12s : %d\n" "$KW" "$COUNT"
     done
     echo ""
@@ -66,12 +71,15 @@ analyze() {
 # Watch the log live and highlight keywords
 watch_live() {
   echo -e "${CYAN}Watching: $LOG_FILE  (Ctrl+C to stop)${RESET}\n"
+  # Use POSIX-compatible sed — avoid the GNU-only 'I' flag.
+  # Pipe through two sed calls: one for upper-case (log standard) and one for
+  # lower-case variants so highlighting works on all GNU/BSD sed versions.
   tail -f "$LOG_FILE" | sed \
-    -e "s/ERROR/${RED}ERROR${RESET}/gI" \
-    -e "s/CRITICAL/${RED}CRITICAL${RESET}/gI" \
-    -e "s/FATAL/${RED}FATAL${RESET}/gI" \
-    -e "s/WARN/${YELLOW}WARN${RESET}/gI" \
-    -e "s/INFO/${GREEN}INFO${RESET}/gI"
+    -e "s/ERROR/${RED}ERROR${RESET}/g" \
+    -e "s/CRITICAL/${RED}CRITICAL${RESET}/g" \
+    -e "s/FATAL/${RED}FATAL${RESET}/g" \
+    -e "s/WARN/${YELLOW}WARN${RESET}/g" \
+    -e "s/INFO/${GREEN}INFO${RESET}/g"
 }
 
 # Interactive menu
@@ -89,7 +97,7 @@ menu() {
     case "$CHOICE" in
       1) analyze ;;
       2) watch_live ;;
-      3) echo ""; tail -20 "$LOG_FILE" ;;
+      3) echo ""; tail -n 20 "$LOG_FILE" ;;
       4) echo -e "${GREEN}Bye!${RESET}"; break ;;
       *) echo -e "${RED}Invalid option.${RESET}" ;;
     esac
