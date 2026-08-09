@@ -212,7 +212,15 @@ cmd_cleanup() {
 
   FREED=0
 
-  # Function to delete and count bytes freed
+  # Portable human-readable byte formatter (no numfmt / GNU coreutils required)
+  human_size() {
+    local bytes=$1
+    if   (( bytes >= 1073741824 )); then printf "%.1fG" "$(echo "scale=1; $bytes/1073741824" | bc)"
+    elif (( bytes >= 1048576    )); then printf "%.1fM" "$(echo "scale=1; $bytes/1048576" | bc)"
+    elif (( bytes >= 1024       )); then printf "%.1fK" "$(echo "scale=1; $bytes/1024" | bc)"
+    else printf "%dB" "$bytes"; fi
+  }
+
   delete_files() {
     local pattern="$1"
     local label="$2"
@@ -222,7 +230,7 @@ cmd_cleanup() {
       size=$(find "$TARGET_DIR" -type f -name "$pattern" -exec du -sb {} + 2>/dev/null | awk '{s+=$1} END{print s+0}')
       find "$TARGET_DIR" -type f -name "$pattern" -delete 2>/dev/null
       FREED=$((FREED + size))
-      log_success "Removed ${count}x ${label} — freed $(numfmt --to=iec $size 2>/dev/null || echo "${size} bytes")"
+      log_success "Removed ${count}x ${label} — freed $(human_size "$size")"
     else
       log_info "No ${label} found."
     fi
@@ -242,9 +250,8 @@ cmd_cleanup() {
     log_success "Removed ${EMPTY_DIRS} empty directories."
   fi
 
-  FREED_HUMAN=$(numfmt --to=iec $FREED 2>/dev/null || echo "${FREED} bytes")
   echo ""
-  log_success "🎉  Cleanup done! Total space freed: ${BOLD}${FREED_HUMAN}${RESET}"
+  log_success "🎉  Cleanup done! Total space freed: ${BOLD}$(human_size "$FREED")${RESET}"
   print_separator
 }
 
