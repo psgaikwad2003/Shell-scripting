@@ -137,10 +137,12 @@ cmd_backup() {
   log_success "Backup created: ${ARCHIVE_NAME} (${ARCHIVE_SIZE})"
 
   # Auto-cleanup: keep only last 7 backups
-  BACKUP_COUNT=$(ls "${BACKUP_DIR}"/backup_*.tar.gz 2>/dev/null | wc -l)
+  # Use 'find' instead of 'ls' in pipelines — ls output is unsafe for parsing
+  BACKUP_COUNT=$(find "${BACKUP_DIR}" -maxdepth 1 -name 'backup_*.tar.gz' 2>/dev/null | wc -l)
   if (( BACKUP_COUNT > 7 )); then
     log_warn "Old backups found. Removing extras (keeping 7 most recent)..."
-    ls -t "${BACKUP_DIR}"/backup_*.tar.gz | tail -n +8 | xargs rm -f
+    find "${BACKUP_DIR}" -maxdepth 1 -name 'backup_*.tar.gz' -printf '%T@ %p\n' \
+      | sort -rn | tail -n +8 | awk '{print $2}' | xargs rm -f
     log_success "Old backups pruned."
   fi
 
