@@ -285,9 +285,16 @@ cmd_monitor() {
 
     print_separator
     echo -e "${BOLD}  PID       USER       CPU%   MEM%   COMMAND${RESET}"
-    ps aux --sort=-%cpu 2>/dev/null | awk 'NR>1 && NR<=16 {
-      printf "  %-9s %-10s %5s  %5s  %s\n", $2, $1, $3, $4, $11
-    }'
+    # ps --sort is Linux/procps-only; fall back to sort -k3 on BSD/macOS
+    if ps aux --sort=-%cpu &>/dev/null 2>&1; then
+      ps aux --sort=-%cpu 2>/dev/null | awk 'NR>1 && NR<=16 {
+        printf "  %-9s %-10s %5s  %5s  %s\n", $2, $1, $3, $4, $11
+      }'
+    else
+      ps aux 2>/dev/null | sort -k3 -rn | awk 'NR<=15 {
+        printf "  %-9s %-10s %5s  %5s  %s\n", $2, $1, $3, $4, $11
+      }'
+    fi
 
     print_separator
     sleep "$INTERVAL"
