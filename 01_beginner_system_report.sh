@@ -38,8 +38,9 @@ RESET="\033[0m"
 print_section() {
     # $1 is the first argument passed to this function
     local TITLE="$1"
-    echo -e "\n${CYAN}>>> ${TITLE}${RESET}"
-    echo ">>> ${TITLE}" >> "$REPORT_FILE"
+    echo -e "\n${CYAN}>>> ${TITLE}${RESET}"     # coloured terminal output
+    # Write plain text (no ANSI codes) to the report file
+    printf "\n>>> %s\n" "$TITLE"  >> "$REPORT_FILE"
     echo "$DIVIDER" >> "$REPORT_FILE"
 }
 
@@ -62,7 +63,6 @@ if [[ -z "$USER_NAME" ]]; then     # -z checks if variable is empty
 fi
 
 echo -e "\nHello, ${GREEN}${USER_NAME}${RESET}! Generating your system report...\n"
-sleep 1    # wait 1 second so the user can read the message
 
 # ── Step 5: Start writing the report file ─────────────────────────────────────
 # '>' creates/overwrites a file.   '>>' appends to a file.
@@ -122,13 +122,17 @@ DISK_USAGE_PERCENT=$(df / | awk 'NR==2 {print $5}' | tr -d '%')
 
 echo "" | tee -a "$REPORT_FILE"
 
-if [[ "$DISK_USAGE_PERCENT" -ge 80 ]]; then
-    echo -e "  ${RED}⚠  WARNING: Root disk is ${DISK_USAGE_PERCENT}% full! Consider cleanup.${RESET}" | tee -a "$REPORT_FILE"
-elif [[ "$DISK_USAGE_PERCENT" -ge 60 ]]; then
-    echo -e "  ${YELLOW}⚡  NOTICE: Root disk is ${DISK_USAGE_PERCENT}% full.${RESET}" | tee -a "$REPORT_FILE"
-else
-    echo -e "  ${GREEN}✅  Disk health is good. Usage: ${DISK_USAGE_PERCENT}%${RESET}" | tee -a "$REPORT_FILE"
-fi
+    # Write to terminal with colour; write plain text (no ANSI codes) to the file
+    if [[ "$DISK_USAGE_PERCENT" -ge 80 ]]; then
+        echo -e "  ${RED}⚠  WARNING: Root disk is ${DISK_USAGE_PERCENT}% full! Consider cleanup.${RESET}"
+        echo "  WARNING: Root disk is ${DISK_USAGE_PERCENT}% full! Consider cleanup." >> "$REPORT_FILE"
+    elif [[ "$DISK_USAGE_PERCENT" -ge 60 ]]; then
+        echo -e "  ${YELLOW}⚡  NOTICE: Root disk is ${DISK_USAGE_PERCENT}% full.${RESET}"
+        echo "  NOTICE: Root disk is ${DISK_USAGE_PERCENT}% full." >> "$REPORT_FILE"
+    else
+        echo -e "  ${GREEN}✅  Disk health is good. Usage: ${DISK_USAGE_PERCENT}%${RESET}"
+        echo "  Disk health is good. Usage: ${DISK_USAGE_PERCENT}%" >> "$REPORT_FILE"
+    fi
 
 # ── Step 11: List last 5 logged-in users ─────────────────────────────────────
 
