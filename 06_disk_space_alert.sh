@@ -15,6 +15,9 @@
 
 set -euo pipefail
 
+# Ignore virtual/pseudo filesystem types (tmpfs, devtmpfs, squashfs)
+EXCLUDED_FSTYPES="tmpfs|devtmpfs|squashfs|overlay"
+
 # ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
