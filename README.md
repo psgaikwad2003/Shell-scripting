@@ -2,7 +2,6 @@
 
 A curated collection of production-grade Bash scripts, SRE diagnostics, security baselines, and performance monitors ranging from foundational administration to advanced cloud and container operations.
 
-[![CI](https://github.com/psgaikwad2003/Shell-scripting/actions/workflows/lint_and_test.yml/badge.svg)](https://github.com/psgaikwad2003/Shell-scripting/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20WSL-brightgreen.svg)]()
 
@@ -64,25 +63,6 @@ A curated collection of production-grade Bash scripts, SRE diagnostics, security
 | **50** | `50_automated_incident_postmortem_collector.sh` | SRE | Incident | Emergency diagnostic telemetry packager for root cause analysis. |
 
 ---
-
-## 🛠️ Unified Interactive Runner: `daily_toolkit.sh`
-
-The repository includes an interactive developer toolkit wrapper:
-
-```bash
-# View dashboard and available tools
-bash daily_toolkit.sh sysinfo
-bash daily_toolkit.sh monitor
-bash daily_toolkit.sh cleanup
-```
-
-## 🧪 Testing and Syntax Validation
-
-Run the automated test runner across all scripts:
-
-```bash
-bash tests/test_runner.sh
-```
 
 ## 🤝 Contributing & License
 
