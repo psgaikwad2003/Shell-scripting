@@ -83,3 +83,8 @@ Run the automated test runner across all scripts:
 ```bash
 bash tests/test_runner.sh
 ```
+
+## 🤝 Contributing & License
+
+Contributions, issues, and feature requests are welcome!
+Licensed under the [MIT License](LICENSE).
