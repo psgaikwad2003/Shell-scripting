@@ -44,6 +44,16 @@ print_section() {
     echo "$DIVIDER" >> "$REPORT_FILE"
 }
 
+check_disk_health_indicator() {
+    local USAGE_PERCENT
+    USAGE_PERCENT=$(df / | awk 'NR==2 {gsub("%",""); print $5}')
+    if (( USAGE_PERCENT >= 85 )); then
+        echo -e "${RED}⚠ Root filesystem capacity alert: ${USAGE_PERCENT}% utilized!${RESET}"
+    else
+        echo -e "${GREEN}✔ Root filesystem healthy: ${USAGE_PERCENT}% utilized.${RESET}"
+    fi
+}
+
 # ── Step 4: Welcome message & ask user name ───────────────────────────────────
 
 clear
