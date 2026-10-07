@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 26_cpu_stress_benchmark.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: CPU Multi-core Stress Test & Benchmark Utility
-#  USAGE  : bash 26_cpu_stress_benchmark.sh [ITERATIONS]
-#           bash 26_cpu_stress_benchmark.sh 500000
-#
-#  CONCEPTS COVERED:
-#    - nproc / /proc/cpuinfo core count detection
-#    - Parallel computation using subshells and background jobs (&)
-#    - Process synchronization with wait command
-#    - High-resolution timing with epoch seconds ($SECONDS or date +%s%N)
+# Script: 26_cpu_stress_benchmark.sh
+# Problem Statement: Generate synthetic multi-core CPU load and benchmark execution time to assess thermal performance and system stability.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -49,7 +39,6 @@ get_core_count() {
 run_worker_bench() {
     local worker_id="$1"
     local rounds="$2"
-    # Execute hashing workload
     echo -n "Core Worker #$worker_id running..."
     local dummy="benchmark_seed_data_$(date +%s%N)"
     for ((i=1; i<=rounds; i++)); do
@@ -71,7 +60,6 @@ run_benchmark() {
         ( run_worker_bench "$c" "$ITERATIONS" ) &
     done
 
-    # Wait for all background workers to finish
     wait
 
     local end_time

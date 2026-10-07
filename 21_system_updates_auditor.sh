@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 21_system_updates_auditor.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Universal Linux Package Update & Security Patch Auditor
-#  USAGE  : bash 21_system_updates_auditor.sh [--check-only]
-#
-#  CONCEPTS COVERED:
-#    - Multi-distribution package manager detection (apt, yum, dnf, pacman, zypper)
-#    - Non-destructive package update listing
-#    - Security updates counting and filtering
-#    - Formatting package results for sysadmin reporting
+# Script: 21_system_updates_auditor.sh
+# Problem Statement: Audit installed OS packages against upstream security advisories to identify pending critical patches.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"

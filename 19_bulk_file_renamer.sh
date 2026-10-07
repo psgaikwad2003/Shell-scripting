@@ -1,23 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 19_bulk_file_renamer.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Advanced Batch File Renaming & Sanitizer Tool
-#  USAGE  : bash 19_bulk_file_renamer.sh [DIRECTORY] [ACTION] [ARGS...]
-#           bash 19_bulk_file_renamer.sh ./docs prefix "2026_"
-#           bash 19_bulk_file_renamer.sh ./docs lowercase
-#           bash 19_bulk_file_renamer.sh ./docs ext-swap ".txt" ".md"
-#
-#  CONCEPTS COVERED:
-#    - Bash parameter expansion (${var//search/replace}, ${var,,})
-#    - File basename and dirname manipulation
-#    - Dry-run validation prior to filesystem mutation
-#    - Handling whitespace and special characters in filenames safely
+# Script: 19_bulk_file_renamer.sh
+# Problem Statement: Sanitize and batch-rename file collections using consistent casing, timestamp prefixes, and regex pattern substitutions.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -70,7 +58,6 @@ action_lowercase() {
         local dirname basename lower_name new_name
         dirname="$(dirname "$file")"
         basename="$(basename "$file")"
-        # Convert to lowercase using tr or bash expansion
         lower_name="$(echo "$basename" | tr '[:upper:]' '[:lower:]')"
         new_name="${dirname}/${lower_name}"
         if [[ "$file" != "$new_name" ]]; then

@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 29_git_branch_cleaner.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Safe automated pruning of merged local and tracking git branches
-#  USAGE  : bash 29_git_branch_cleaner.sh [--dry-run|--force] [BASE_BRANCH]
-#           bash 29_git_branch_cleaner.sh --dry-run main
-#
-#  CONCEPTS COVERED:
-#    - Git plumbing commands (git branch --merged, git rev-parse)
-#    - Safety guards preventing deletion of protected branches (main, master, dev)
-#    - Command line argument parsing and boolean flags
-#    - Interactive user prompts vs non-interactive batch automation
+# Script: 29_git_branch_cleaner.sh
+# Problem Statement: Identify and prune merged local Git branches safely while protecting primary production branches.
 # =============================================================================
 
 set -euo pipefail
@@ -70,7 +61,7 @@ clean_branches() {
     CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
     echo -e "\nScanning branches merged into ${CYAN}${BASE_BRANCH}${RESET}..."
-    
+
     local MERGED_BRANCHES=()
     while IFS= read -r branch; do
         branch=$(echo "$branch" | tr -d ' *')

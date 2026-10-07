@@ -1,22 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 15_file_integrity_checker.sh
-#  LEVEL  : Intermediate - Advanced
-#  PURPOSE: File Integrity & Tamper Detection System (SHA-256 Baseline)
-#  USAGE  : bash 15_file_integrity_checker.sh [generate|verify] [DIR] [HASH_DB]
-#           bash 15_file_integrity_checker.sh generate /etc /tmp/etc_hashes.db
-#           bash 15_file_integrity_checker.sh verify   /etc /tmp/etc_hashes.db
-#
-#  CONCEPTS COVERED:
-#    - Generating cryptographic digests (sha256sum)
-#    - Checking checksum database against filesystem
-#    - Diffing baseline files to detect modifications, additions, and deletions
-#    - Security auditing principles for critical system configs
+# Script: 15_file_integrity_checker.sh
+# Problem Statement: Generate and compare SHA256 cryptographic file hashes against baselines to detect unauthorized tampering or corruption.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"

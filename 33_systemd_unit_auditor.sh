@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 33_systemd_unit_auditor.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Audit Linux systemd service states, failed units, & boot bootup latency
-#  USAGE  : bash 33_systemd_unit_auditor.sh
-#
-#  CONCEPTS COVERED:
-#    - systemctl failed unit extraction
-#    - systemd-analyze blame boot bottleneck analysis
-#    - Journalctl high-priority error message filtering
-#    - Multi-distro compatibility checks
+# Script: 33_systemd_unit_auditor.sh
+# Problem Statement: Detect failed systemd units, analyze boot startup latency bottlenecks, and review high-priority journal errors.
 # =============================================================================
 
 set -euo pipefail

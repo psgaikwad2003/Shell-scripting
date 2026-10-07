@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 17_git_repo_syncer.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Multi-Repository Git Status & Auto-Sync Auditor
-#  USAGE  : bash 17_git_repo_syncer.sh [PARENT_DIRECTORY] [--fetch|--status-only]
-#           bash 17_git_repo_syncer.sh ~/projects --fetch
-#
-#  CONCEPTS COVERED:
-#    - Discovering .git repositories with find -type d -name ".git"
-#    - Subshell execution within repository directories (cd & git)
-#    - Git plumbing commands: git status --porcelain, git branch --show-current
-#    - Handling dirty working trees and ahead/behind branch states
+# Script: 17_git_repo_syncer.sh
+# Problem Statement: Batch inspect and synchronize multiple Git repositories across directories, highlighting uncommitted changes and branch drift.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -55,7 +45,6 @@ scan_repositories() {
 
             echo -e "\n📁 Repository: ${BOLD}${repo_name}${RESET} [Branch: ${CYAN}${current_branch}${RESET}]"
 
-            # Check dirty working tree
             local dirty
             dirty="$(git status --porcelain 2>/dev/null || true)"
             if [[ -n "$dirty" ]]; then
@@ -64,13 +53,11 @@ scan_repositories() {
                 echo -e "  ↳ Tree Status : ${GREEN}Clean${RESET}"
             fi
 
-            # Optionally fetch remote
             if [[ "$MODE" == "--fetch" ]]; then
                 echo -e "  ↳ Fetching updates from origin..."
                 git fetch origin --quiet 2>/dev/null || echo -e "    ${YELLOW}(Remote fetch skipped or failed)${RESET}"
             fi
 
-            # Check ahead/behind count
             local upstream
             upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
             if [[ -n "$upstream" ]]; then

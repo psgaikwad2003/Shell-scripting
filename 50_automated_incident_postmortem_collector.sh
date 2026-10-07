@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 50_automated_incident_postmortem_collector.sh
-#  LEVEL  : Advanced / SRE
-#  PURPOSE: Automated SRE incident triage diagnostics collector & artifact bundle
-#  USAGE  : bash 50_automated_incident_postmortem_collector.sh [OUTPUT_DIR]
-#           bash 50_automated_incident_postmortem_collector.sh /tmp/triage
-#
-#  CONCEPTS COVERED:
-#    - Comprehensive incident telemetry bundling (dmesg, top, ps, df, netstat)
-#    - Ephemeral diagnostic directory creation
-#    - Archive compression & timestamping for SRE RCA (Root Cause Analysis)
+# Script: 50_automated_incident_postmortem_collector.sh
+# Problem Statement: Capture and bundle critical system telemetry (dmesg, processes, sockets, memory, logs) into a compressed post-mortem triage artifact.
 # =============================================================================
 
 set -euo pipefail

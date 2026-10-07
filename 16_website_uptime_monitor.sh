@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 16_website_uptime_monitor.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: HTTP/HTTPS Endpoint Uptime, Latency & Status Monitor
-#  USAGE  : bash 16_website_uptime_monitor.sh [URL_1] [URL_2] ...
-#           bash 16_website_uptime_monitor.sh https://google.com https://github.com
-#
-#  CONCEPTS COVERED:
-#    - curl formatting flags (-w "%{http_code} %{time_total}")
-#    - HTTP status code evaluation (2xx/3xx vs 4xx/5xx)
-#    - Handling request timeouts and DNS failures
-#    - Summary table formatting with colored outputs
+# Script: 16_website_uptime_monitor.sh
+# Problem Statement: Monitor HTTP/HTTPS endpoints for status codes, latency thresholds, and uptime availability.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -45,7 +35,6 @@ check_endpoint() {
         return 1
     fi
 
-    # Perform request with timeout of 5 seconds
     local response
     response=$(curl -s -o /dev/null -w "%{http_code} %{time_total}" --connect-timeout 5 --max-time 10 "$url" 2>/dev/null || echo "000 0.000")
 

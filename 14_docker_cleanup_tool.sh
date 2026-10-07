@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 14_docker_cleanup_tool.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Docker Containers, Images, Volumes & Build Cache Cleaner
-#  USAGE  : bash 14_docker_cleanup_tool.sh [--dry-run|--force]
-#
-#  CONCEPTS COVERED:
-#    - Docker CLI command verification (docker ps, docker images, docker volume)
-#    - Dry-run versus execution mode flags
-#    - Conditional execution and safety prompt confirmation
-#    - Pruning stopped containers, dangling images, and anonymous volumes
-#    - Calculating reclaimed disk space
+# Script: 14_docker_cleanup_tool.sh
+# Problem Statement: Clean up stopped Docker containers, dangling images, unused volumes, and build cache to reclaim host disk space.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Log Monitor Script — Intermediate Level
+# =============================================================================
+# Script: 04_log_monitor.sh
+# Problem Statement: Tail and stream log files with dynamic pattern matching and automated incident alerting.
+# =============================================================================
 
 set -euo pipefail
 
@@ -10,7 +13,6 @@ LOG_FILE="${1:-./demo.log}"
 REPORT_DIR="./reports"
 KEYWORDS=("ERROR" "CRITICAL" "FATAL" "FAILED" "WARN")
 
-# Create a demo log if none is given
 create_demo_log() {
   cat > "$LOG_FILE" <<EOF
 $(date) INFO  nginx: GET /api/users 200 OK
@@ -27,14 +29,11 @@ EOF
   echo -e "${GREEN}Demo log created: $LOG_FILE${RESET}"
 }
 
-# Analyze the log file
 analyze() {
   mkdir -p "$REPORT_DIR"
   REPORT="$REPORT_DIR/report_$(date '+%Y%m%d_%H%M%S').txt"
 
   TOTAL=$(wc -l < "$LOG_FILE")
-  # Use grep with '|| true' so a zero-match (exit 1) does not abort the script
-  # under 'set -e'. Then fall back to 0 if the variable ends up empty.
   ERRORS=$(grep -icE "error|critical|fatal|failed" "$LOG_FILE" 2>/dev/null || true)
   ERRORS=${ERRORS:-0}
   WARNS=$(grep -ic "warn" "$LOG_FILE" 2>/dev/null || true)
@@ -68,12 +67,8 @@ analyze() {
   echo -e "\n${CYAN}Report saved: $REPORT${RESET}"
 }
 
-# Watch the log live and highlight keywords
 watch_live() {
   echo -e "${CYAN}Watching: $LOG_FILE  (Ctrl+C to stop)${RESET}\n"
-  # Use POSIX-compatible sed — avoid the GNU-only 'I' flag.
-  # Pipe through two sed calls: one for upper-case (log standard) and one for
-  # lower-case variants so highlighting works on all GNU/BSD sed versions.
   tail -f "$LOG_FILE" | sed \
     -e "s/ERROR/${RED}ERROR${RESET}/g" \
     -e "s/CRITICAL/${RED}CRITICAL${RESET}/g" \
@@ -82,7 +77,6 @@ watch_live() {
     -e "s/INFO/${GREEN}INFO${RESET}/g"
 }
 
-# Interactive menu
 menu() {
   while true; do
     echo ""
@@ -104,7 +98,6 @@ menu() {
   done
 }
 
-# Entry point
 clear
 echo -e "${BOLD}${GREEN}=== Log Monitor Script ===${RESET}\n"
 

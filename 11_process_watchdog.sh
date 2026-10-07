@@ -1,22 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 11_process_watchdog.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: High CPU & Memory Process Watchdog & Resource Monitor
-#  USAGE  : bash 11_process_watchdog.sh [CPU_LIMIT] [MEM_LIMIT]
-#           bash 11_process_watchdog.sh 75 80
-#
-#  CONCEPTS COVERED:
-#    - ps command with custom formatting (-eo pid,ppid,cmd,%cpu,%mem)
-#    - Awk floating point arithmetic and conditional filtering
-#    - Signal handling and process termination simulation (kill -15)
-#    - Top resource consumer profiling
-#    - Logging alerts to file
+# Script: 11_process_watchdog.sh
+# Problem Statement: Track processes consuming excessive CPU or memory and throttle or terminate rogue runaway tasks.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"

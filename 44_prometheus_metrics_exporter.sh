@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 44_prometheus_metrics_exporter.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Generate Prometheus-compliant node metrics in pure Bash
-#  USAGE  : bash 44_prometheus_metrics_exporter.sh [METRICS_OUTPUT_FILE]
-#           bash 44_prometheus_metrics_exporter.sh /tmp/node_metrics.prom
-#
-#  CONCEPTS COVERED:
-#    - Prometheus text-based exposition format specification (HELP & TYPE)
-#    - Gauge and Counter metric definitions
-#    - System telemetry extraction (load, RAM, disk, process count)
-#    - Integration with prometheus-node-exporter textfile collector
+# Script: 44_prometheus_metrics_exporter.sh
+# Problem Statement: Extract system metrics in pure Bash and expose them formatted according to the Prometheus exposition text standard.
 # =============================================================================
 
 set -euo pipefail

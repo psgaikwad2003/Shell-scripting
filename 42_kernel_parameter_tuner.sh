@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 42_kernel_parameter_tuner.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Audit Linux sysctl kernel parameters & recommend high-performance tuning
-#  USAGE  : bash 42_kernel_parameter_tuner.sh
-#
-#  CONCEPTS COVERED:
-#    - Kernel parameter reading via sysctl / /proc/sys
-#    - Socket backlog tuning (net.core.somaxconn)
-#    - File descriptor limit audits (fs.file-max)
-#    - Virtual memory swap aggressiveness (vm.swappiness)
+# Script: 42_kernel_parameter_tuner.sh
+# Problem Statement: Inspect Linux sysctl kernel parameters and recommend optimizations for network socket queues and virtual memory.
 # =============================================================================
 
 set -euo pipefail
@@ -39,7 +31,7 @@ check_param() {
     local DESCRIPTION="$3"
 
     printf "%-32s : " "$PARAM"
-    
+
     local CURRENT_VAL
     if command -v sysctl &>/dev/null; then
         CURRENT_VAL=$(sysctl -n "$PARAM" 2>/dev/null || echo "N/A")

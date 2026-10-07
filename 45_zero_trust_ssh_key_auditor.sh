@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 45_zero_trust_ssh_key_auditor.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Audit authorized_keys files for weak cryptography (DSA, small RSA)
-#  USAGE  : bash 45_zero_trust_ssh_key_auditor.sh [KEYS_FILE]
-#           bash 45_zero_trust_ssh_key_auditor.sh ~/.ssh/authorized_keys
-#
-#  CONCEPTS COVERED:
-#    - SSH public key parsing (ssh-keygen -l -f)
-#    - Cryptographic algorithm policy enforcement (ED25519 vs RSA >= 3072 vs DSA)
-#    - Detection of duplicate authorized keys across user profiles
-#    - Self-contained dummy keys generator for test runs
+# Script: 45_zero_trust_ssh_key_auditor.sh
+# Problem Statement: Scan authorized_keys files to identify weak or deprecated cryptographic algorithms (DSA, RSA < 2048) and duplicates.
 # =============================================================================
 
 set -euo pipefail

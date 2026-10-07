@@ -1,22 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 07_user_account_manager.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Linux User Account Administration (Create, Lock, Unlock, Delete)
-#  USAGE  : bash 07_user_account_manager.sh [ACTION] [USERNAME] [GROUP]
-#           Actions: create | lock | unlock | delete | list | info
-#
-#  CONCEPTS COVERED:
-#    - Root privileges checking (EUID == 0)
-#    - Case statement for subcommands
-#    - useradd, usermod, userdel, passwd commands
-#    - Idempotency checks (grep in /etc/passwd)
-#    - Safe argument parsing and interactive prompting fallback
+# Script: 07_user_account_manager.sh
+# Problem Statement: Administer Linux user accounts and groups with automated creation, locking, permission audits, and account decommissioning.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"

@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 35_linux_security_baseline_scanner.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Linux OS CIS-inspired security hardening baseline auditor
-#  USAGE  : bash 35_linux_security_baseline_scanner.sh
-#
-#  CONCEPTS COVERED:
-#    - Sensitive credential file permission audits (/etc/shadow, /etc/passwd)
-#    - World-writable file search (find -perm -002)
-#    - SUID/SGID binary identification
-#    - Default umask & SSH configuration hygiene
-#    - Weighted scoring algorithm for security posture
+# Script: 35_linux_security_baseline_scanner.sh
+# Problem Statement: Audit Linux system security posture against CIS baselines including permissions, root SSH access, and shell umask.
 # =============================================================================
 
 set -euo pipefail
@@ -47,7 +38,6 @@ check_file_perm() {
         return
     fi
 
-    # Check permissions using stat if available
     local PERMS
     if command -v stat &>/dev/null; then
         PERMS=$(stat -c "%a" "$FILE" 2>/dev/null || stat -f "%Op" "$FILE" 2>/dev/null || echo "unknown")

@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 31_redis_cache_benchmark.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Audit Redis in-memory cache metrics, latency, hit ratios, & fragmentation
-#  USAGE  : bash 31_redis_cache_benchmark.sh [HOST] [PORT] [AUTH_PASSWORD]
-#           bash 31_redis_cache_benchmark.sh 127.0.0.1 6379 ""
-#
-#  CONCEPTS COVERED:
-#    - Redis INFO command metric extraction via redis-cli / netcat
-#    - Cache hit ratio calculation formula: hits / (hits + misses) * 100
-#    - Memory fragmentation ratio analysis (used_memory vs used_memory_rss)
-#    - Graceful fallback simulator when Redis server is offline
+# Script: 31_redis_cache_benchmark.sh
+# Problem Statement: Audit Redis server memory fragmentation, cache hit/miss ratios, connected clients, and roundtrip ping latency.
 # =============================================================================
 
 set -euo pipefail
@@ -39,7 +30,7 @@ print_banner() {
 
 run_mock_benchmark() {
     echo -e "${YELLOW}[SIMULATION] Redis instance offline or unreachable. Demonstrating metric audit:${RESET}\n"
-    
+
     echo -e "${BOLD}Simulated Redis Metrics:${RESET}"
     echo "  Connected Clients           : 142"
     echo "  Total Keys Stored           : 1,845,920"

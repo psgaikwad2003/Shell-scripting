@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 23_fail2ban_log_analyzer.sh
-#  LEVEL  : Advanced
-#  PURPOSE: SSH Auth Log & Security Intrusion Analyzer
-#  USAGE  : bash 23_fail2ban_log_analyzer.sh [LOG_FILE] [ATTEMPT_THRESHOLD]
-#           bash 23_fail2ban_log_analyzer.sh /var/log/auth.log 5
-#
-#  CONCEPTS COVERED:
-#    - Regex matching of failed password / invalid user attempts
-#    - awk / sort / uniq -c frequency analysis
-#    - Identifying brute-force source IP addresses
-#    - Generating firewall ban blocklists
+# Script: 23_fail2ban_log_analyzer.sh
+# Problem Statement: Analyze authentication logs to detect SSH brute-force attempts and summarize IP ban activities.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -56,7 +46,6 @@ analyze_logs() {
     seed_demo_log
     echo -e "${BOLD}Aggregating Failed Authentication Attempts by IP:${RESET}\n"
 
-    # Extract IPs matching "Failed password"
     local offenders
     offenders=$(grep "Failed password" "$LOG_FILE" 2>/dev/null | awk '{
         for (i=1; i<=NF; i++) {

@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 37_wireguard_vpn_manager.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Audit WireGuard VPN interfaces, peer handshake freshness & transfer
-#  USAGE  : bash 37_wireguard_vpn_manager.sh [INTERFACE]
-#           bash 37_wireguard_vpn_manager.sh wg0
-#
-#  CONCEPTS COVERED:
-#    - wg show interface & peer data extraction
-#    - Stale handshake timestamp detection (> 180 seconds)
-#    - Byte transfer volume formatting (KB, MB, GB)
-#    - Simulated fallback for non-VPN host verification
+# Script: 37_wireguard_vpn_manager.sh
+# Problem Statement: Audit WireGuard VPN interfaces, peer handshake freshness, and network transfer volume to detect stale tunnels.
 # =============================================================================
 
 set -euo pipefail

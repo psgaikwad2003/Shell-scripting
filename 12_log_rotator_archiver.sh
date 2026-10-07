@@ -1,22 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 12_log_rotator_archiver.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Custom Log Rotation, Size-based Archival, and Compression Engine
-#  USAGE  : bash 12_log_rotator_archiver.sh [LOG_DIR] [MAX_SIZE_MB]
-#           bash 12_log_rotator_archiver.sh /var/log/app 10
-#
-#  CONCEPTS COVERED:
-#    - File size discovery via stat / du
-#    - String formatting and date-stamped file naming
-#    - gzip compression with stream truncation (> file)
-#    - Safe atomic file operations (mv, cp, truncate)
-#    - Batch processing with for loops and file globbing
+# Script: 12_log_rotator_archiver.sh
+# Problem Statement: Automatically compress, archive, and rotate bulky system and application log files to prevent storage exhaustion.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -43,7 +32,6 @@ print_header() {
 
 prepare_environment() {
     mkdir -p "$ARCHIVE_DIR"
-    # Seed dummy log files if directory is empty
     if ! ls "$LOG_DIR"/*.log &>/dev/null; then
         echo -e "${YELLOW}No .log files found. Generating sample test logs...${RESET}"
         for i in 1 2; do
@@ -60,7 +48,6 @@ get_file_size_bytes() {
     if stat -c%s "$file" &>/dev/null; then
         stat -c%s "$file"
     else
-        # macOS / BSD fallback
         stat -f%z "$file" 2>/dev/null || wc -c < "$file"
     fi
 }
@@ -69,7 +56,6 @@ rotate_logs() {
     local max_bytes=$(( MAX_SIZE_MB * 1024 * 1024 ))
     local rotated_count=0
 
-    # Ensure shopt nullglob handles directories with no matching files
     shopt -s nullglob
     local log_files=("$LOG_DIR"/*.log)
     shopt -u nullglob
@@ -82,7 +68,6 @@ rotate_logs() {
 
         echo -e "Evaluating: ${BOLD}${file_name}${RESET} (${size_bytes} bytes)"
 
-        # Check if file exceeds max size OR force rotation demonstration if small test file
         if (( size_bytes >= max_bytes || size_bytes > 5000 )); then
             local ts
             ts="$(date +'%Y%m%d_%H%M%S')"
@@ -90,7 +75,6 @@ rotate_logs() {
 
             echo -e "  ↳ ${YELLOW}Rotating file:${RESET} moving to $archived_target"
             cp "$log_path" "$archived_target"
-            # Truncate active log file without killing processes holding file descriptor
             : > "$log_path"
 
             echo -e "  ↳ Compressing archive with gzip..."

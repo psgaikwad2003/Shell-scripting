@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 22_s3_cloud_backup_sync.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Cloud Object Storage Synchronizer (AWS S3 / Rclone Compatible)
-#  USAGE  : bash 22_s3_cloud_backup_sync.sh [LOCAL_DIR] [S3_BUCKET_URI] [--dry-run|--sync]
-#           bash 22_s3_cloud_backup_sync.sh /data s3://my-company-backups/daily --dry-run
-#
-#  CONCEPTS COVERED:
-#    - AWS CLI / rclone wrapper patterns
-#    - Dry-run validation of remote synchronization
-#    - Bandwidth limiting and exclude patterns
-#    - Retry logic with exponential backoff
+# Script: 22_s3_cloud_backup_sync.sh
+# Problem Statement: Synchronize local backup archives to AWS S3 object storage with bandwidth throttling and integrity validation.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"

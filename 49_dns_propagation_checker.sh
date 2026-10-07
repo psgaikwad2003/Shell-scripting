@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 49_dns_propagation_checker.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Query global public DNS resolvers to test record propagation
-#  USAGE  : bash 49_dns_propagation_checker.sh [DOMAIN] [RECORD_TYPE]
-#           bash 49_dns_propagation_checker.sh github.com A
-#
-#  CONCEPTS COVERED:
-#    - dig / nslookup query options (+short, timeout)
-#    - Querying multiple public DNS resolvers (Google, Cloudflare, Quad9, OpenDNS)
-#    - Validating DNS consistency across geographically distributed caches
+# Script: 49_dns_propagation_checker.sh
+# Problem Statement: Query global public DNS resolvers to verify record propagation consistency across different geographic locations.
 # =============================================================================
 
 set -euo pipefail
@@ -47,7 +39,7 @@ check_dns() {
     for entry in "${RESOLVERS[@]}"; do
         IFS=':' read -r NAME IP <<< "$entry"
         printf "Resolver %-15s (@%-15s) : " "$NAME" "$IP"
-        
+
         local RESULT=""
         if command -v dig &>/dev/null; then
             RESULT=$(dig @"$IP" "$DOMAIN" "$RECORD_TYPE" +short +time=2 +tries=1 2>/dev/null | tr '\n' ' ' || echo "TIMEOUT")

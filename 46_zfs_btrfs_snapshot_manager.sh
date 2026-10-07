@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 46_zfs_btrfs_snapshot_manager.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Automated CoW filesystem snapshot manager (ZFS / Btrfs) & pruning
-#  USAGE  : bash 46_zfs_btrfs_snapshot_manager.sh [FS_TYPE] [POOL_OR_PATH] [RETENTION_COUNT]
-#           bash 46_zfs_btrfs_snapshot_manager.sh zfs tank/data 7
-#
-#  CONCEPTS COVERED:
-#    - Copy-on-Write (CoW) atomic snapshot creation
-#    - Rolling retention window pruning (FIFO pruning)
-#    - Graceful fallback simulator when ZFS/Btrfs tools are not loaded
+# Script: 46_zfs_btrfs_snapshot_manager.sh
+# Problem Statement: Automate creation and rolling retention pruning of Copy-on-Write (CoW) filesystem snapshots for ZFS and Btrfs.
 # =============================================================================
 
 set -euo pipefail

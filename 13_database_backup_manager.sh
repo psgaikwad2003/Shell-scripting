@@ -1,22 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 13_database_backup_manager.sh
-#  LEVEL  : Intermediate - Advanced
-#  PURPOSE: Database Backup Automation (MySQL / Postgres) with Checksums
-#  USAGE  : bash 13_database_backup_manager.sh [DB_TYPE] [DB_NAME] [OUTPUT_DIR]
-#           bash 13_database_backup_manager.sh mysql production_db /backups/db
-#
-#  CONCEPTS COVERED:
-#    - mysqldump / pg_dump execution pattern
-#    - Integrity verification via sha256sum
-#    - Environment variable secret extraction (DB_USER, DB_PASS)
-#    - Simulation / mock mode when DB binary is missing
-#    - Timestamped archive management & error handling
+# Script: 13_database_backup_manager.sh
+# Problem Statement: Create automated database dumps, verify backup archive integrity using checksums, and purge expired copies.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"

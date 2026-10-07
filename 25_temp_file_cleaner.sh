@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 25_temp_file_cleaner.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Safe System Temporary & Cache Files Purge Tool
-#  USAGE  : bash 25_temp_file_cleaner.sh [TEMP_DIR] [AGE_MINUTES] [--dry-run|--purge]
-#           bash 25_temp_file_cleaner.sh /tmp 1440 --dry-run
-#
-#  CONCEPTS COVERED:
-#    - find command with -mmin (modification time in minutes)
-#    - Safety guards preventing accidental root/critical directory wiping
-#    - Calculating reclaimed bytes
-#    - Handling file locking and deletion error reporting
+# Script: 25_temp_file_cleaner.sh
+# Problem Statement: Safely purge temporary files and directory caches older than a set retention window without affecting running processes.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -41,7 +31,6 @@ print_header() {
 }
 
 safety_check() {
-    # Prevent running against root, boot, or vital directories
     if [[ "$TARGET_DIR" =~ ^/($|bin|boot|dev|etc|lib|proc|root|sbin|sys|usr)$ ]]; then
         echo -e "${RED}${BOLD}[FATAL SAFETY ERROR] Target directory '$TARGET_DIR' is a protected system root path! Aborting.${RESET}"
         exit 1
@@ -62,7 +51,6 @@ clean_temp_files() {
     echo -e "Scanning for candidate files in: ${BOLD}$TARGET_DIR${RESET}..."
     local match_count=0
 
-    # Search for files older than AGE_MINUTES or any .tmp files
     while IFS= read -r file; do
         [[ -z "$file" ]] && continue
         ((match_count++))

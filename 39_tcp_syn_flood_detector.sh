@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 39_tcp_syn_flood_detector.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Audit TCP socket states & detect SYN flood half-open connection spikes
-#  USAGE  : bash 39_tcp_syn_flood_detector.sh [SYN_THRESHOLD]
-#           bash 39_tcp_syn_flood_detector.sh 50
-#
-#  CONCEPTS COVERED:
-#    - Socket statistics via ss or netstat
-#    - TCP connection states (SYN-RECV, ESTAB, TIME-WAIT, LISTEN)
-#    - Anomaly detection for SYN flood DoS attacks
-#    - Kernel mitigation recommendations (SYN cookies, tcp_max_syn_backlog)
+# Script: 39_tcp_syn_flood_detector.sh
+# Problem Statement: Inspect TCP socket connection tables to identify half-open SYN spikes indicative of SYN flood DDoS attacks.
 # =============================================================================
 
 set -euo pipefail
@@ -49,7 +40,6 @@ audit_sockets() {
         TIME_WAIT=$(netstat -ant 2>/dev/null | grep -c "TIME_WAIT" || true)
         LISTEN=$(netstat -ant 2>/dev/null | grep -c "LISTEN" || true)
     else
-        # Mock/simulated values
         SYN_RECV=2; ESTAB=18; TIME_WAIT=12; LISTEN=6
     fi
 
@@ -57,7 +47,7 @@ audit_sockets() {
     printf "  %-20s : %s\n" "LISTENING" "$LISTEN"
     printf "  %-20s : %s\n" "ESTABLISHED" "$ESTAB"
     printf "  %-20s : %s\n" "TIME_WAIT" "$TIME_WAIT"
-    
+
     if (( SYN_RECV >= SYN_THRESHOLD )); then
         printf "  %-20s : ${RED}%s [POTENTIAL SYN FLOOD]${RESET}\n" "SYN_RECV (Half-Open)" "$SYN_RECV"
         echo -e "\n${RED}⚠ WARNING: SYN half-open connections exceed threshold ($SYN_THRESHOLD)!${RESET}"

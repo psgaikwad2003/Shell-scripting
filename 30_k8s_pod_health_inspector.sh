@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 30_k8s_pod_health_inspector.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Kubernetes Pod diagnostic auditor & crash loop triage detector
-#  USAGE  : bash 30_k8s_pod_health_inspector.sh [NAMESPACE] [MAX_RESTARTS]
-#           bash 30_k8s_pod_health_inspector.sh default 5
-#
-#  CONCEPTS COVERED:
-#    - kubectl JSON / custom-columns parsing
-#    - Detecting CrashLoopBackOff, OOMKilled, and ImagePullBackOff
-#    - Restart count threshold anomaly detection
-#    - Standalone fallback simulation mode for local testing
+# Script: 30_k8s_pod_health_inspector.sh
+# Problem Statement: Inspect Kubernetes pods across namespaces to detect CrashLoopBackOff states, OOMKilled events, and excessive restart counts.
 # =============================================================================
 
 set -euo pipefail
@@ -39,7 +30,7 @@ print_banner() {
 
 run_mock_diagnostic() {
     echo -e "${YELLOW}[NOTICE] 'kubectl' not found or cluster unreachable. Running diagnostic simulation mode.${RESET}\n"
-    
+
     printf "%-20s %-30s %-12s %-10s %-15s\n" "NAMESPACE" "POD NAME" "STATUS" "RESTARTS" "HEALTH"
     echo "----------------------------------------------------------------------------------------"
     printf "%-20s %-30s %-12s %-10s ${GREEN}%-15s${RESET}\n" "production" "web-api-749bf6979b-x89p2" "Running" "0" "HEALTHY"
@@ -67,7 +58,7 @@ audit_cluster() {
     fi
 
     echo -e "${BOLD}Querying cluster pod metrics...${RESET}\n"
-    
+
     local POD_DATA
     if ! POD_DATA=$(kubectl get pods $NS_FLAG --no-headers -o custom-columns="NS:.metadata.namespace,NAME:.metadata.name,STATUS:.status.phase,RESTARTS:.status.containerStatuses[0].restartCount" 2>/dev/null); then
         run_mock_diagnostic
@@ -82,7 +73,7 @@ audit_cluster() {
         [[ -z "$line" ]] && continue
         local ns name status restarts
         read -r ns name status restarts <<< "$line"
-        
+
         restarts="${restarts:-0}"
         if [[ "$restarts" =~ ^[0-9]+$ ]] && (( restarts >= MAX_RESTARTS )); then
             printf "%-20s %-35s %-15s ${RED}%-10s [EXCEEDED THRESHOLD]${RESET}\n" "$ns" "$name" "$status" "$restarts"

@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 20_memory_swap_monitor.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: RAM & Swap Memory Diagnostic Tool with Consumption Profiling
-#  USAGE  : bash 20_memory_swap_monitor.sh [WARN_MEM_PCT] [WARN_SWAP_PCT]
-#
-#  CONCEPTS COVERED:
-#    - Parsing /proc/meminfo or free command
-#    - Calculating percentage utilization in awk
-#    - Top memory-consuming processes breakdown
-#    - Swap usage threshold detection
+# Script: 20_memory_swap_monitor.sh
+# Problem Statement: Audit RAM and swap space utilization, identify memory hogs, and warn when physical memory exhaustion is imminent.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"

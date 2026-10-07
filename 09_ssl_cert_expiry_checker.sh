@@ -1,22 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 09_ssl_cert_expiry_checker.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: SSL/TLS Certificate Expiration & Validity Auditor
-#  USAGE  : bash 09_ssl_cert_expiry_checker.sh [DOMAIN:PORT] [WARN_DAYS]
-#           bash 09_ssl_cert_expiry_checker.sh github.com 30
-#
-#  CONCEPTS COVERED:
-#    - openssl s_client and openssl x509 commands
-#    - Date arithmetic & epoch time comparison in bash
-#    - Parsing TLS certificate fields (Issuer, Subject, Expiry Date)
-#    - Parameter parsing with default ports (443)
-#    - Multi-domain batch auditing
+# Script: 09_ssl_cert_expiry_checker.sh
+# Problem Statement: Inspect TLS/SSL certificates on remote domains and trigger warnings before certificate expiration thresholds.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -52,7 +41,6 @@ check_cert_expiry() {
         return 1
     fi
 
-    # Connect and retrieve certificate details
     local cert_output
     cert_output=$(echo | openssl s_client -servername "$host" -connect "${host}:${port}" 2>/dev/null || true)
 
@@ -61,19 +49,15 @@ check_cert_expiry() {
         return 1
     fi
 
-    # Extract certificate dates & subject
     local end_date
     end_date=$(echo "$cert_output" | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
     local issuer
     issuer=$(echo "$cert_output" | openssl x509 -noout -issuer 2>/dev/null | sed 's/issuer=//')
 
-    # Convert expiry to epoch seconds
     local expiry_epoch current_epoch seconds_diff days_left
     if date --version &>/dev/null; then
-        # GNU date
         expiry_epoch=$(date -d "$end_date" +%s)
     else
-        # BSD / macOS date
         expiry_epoch=$(date -j -f "%b %d %T %Y %Z" "$end_date" +%s 2>/dev/null || date +%s)
     fi
 

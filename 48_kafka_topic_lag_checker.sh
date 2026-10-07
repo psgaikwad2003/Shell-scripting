@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 48_kafka_topic_lag_checker.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Monitor Apache Kafka consumer group lag & partition skew
-#  USAGE  : bash 48_kafka_topic_lag_checker.sh [BOOTSTRAP_SERVER] [GROUP]
-#           bash 48_kafka_topic_lag_checker.sh localhost:9092 payment-consumers
-#
-#  CONCEPTS COVERED:
-#    - kafka-consumer-groups diagnostics command
-#    - Offset calculation: Log-End-Offset - Current-Offset = Lag
-#    - Alerting on consumer bottleneck thresholds
+# Script: 48_kafka_topic_lag_checker.sh
+# Problem Statement: Monitor Apache Kafka consumer group lag and identify partition skew causing processing bottlenecks.
 # =============================================================================
 
 set -euo pipefail

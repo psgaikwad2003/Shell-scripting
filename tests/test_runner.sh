@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  TEST SUITE : test_runner.sh
-#  PURPOSE    : Automated syntax validation (bash -n) and integrity check
-#  USAGE      : bash tests/test_runner.sh
+# Script: test_runner.sh
+# Problem Statement: Automatically inspect and validate the syntax of all Bash scripts in the repository using non-executing static analysis (bash -n).
 # =============================================================================
 
 set -euo pipefail
@@ -27,7 +26,7 @@ for script in "$SCRIPTS_DIR"/*.sh; do
     [[ ! -f "$script" ]] && continue
     name=$(basename "$script")
     printf "Validating syntax of %-42s : " "$name"
-    
+
     if bash -n "$script" 2>/dev/null; then
         echo -e "${GREEN}[PASS]${RESET}"
         ((PASSED++)) || true
@@ -46,5 +45,3 @@ if (( FAILED > 0 )); then
 else
     echo -e "${GREEN}All shell scripts passed syntax inspection!${RESET}"
 fi
-
-# Verification marker: test suite configuration locked

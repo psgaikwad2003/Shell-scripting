@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 43_jwt_token_inspector.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Inspect & decode JSON Web Tokens (JWT) without external libraries
-#  USAGE  : bash 43_jwt_token_inspector.sh [JWT_TOKEN]
-#           bash 43_jwt_token_inspector.sh "eyJhbGciOi..."
-#
-#  CONCEPTS COVERED:
-#    - Base64Url padding & RFC 7519 JWT payload decoding
-#    - Unix epoch timestamp calculation vs current time (exp claim)
-#    - Detecting insecure algorithm vulnerability ("alg": "none")
-#    - Zero external runtime dependency (pure bash + base64)
+# Script: 43_jwt_token_inspector.sh
+# Problem Statement: Decode and inspect RFC 7519 JSON Web Tokens (JWT) to verify payload claims, expiration timestamps, and algorithm security.
 # =============================================================================
 
 set -euo pipefail
@@ -22,7 +13,6 @@ CYAN="\033[0;36m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
-# Default sample token (valid exp in the future)
 SAMPLE_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkFsaWNlIERldk9wcyIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxODkzNDU2MDAwfQ.simulated_signature"
 TOKEN="${1:-$SAMPLE_TOKEN}"
 
@@ -38,10 +28,8 @@ print_banner() {
 
 decode_base64_url() {
     local input="$1"
-    # Convert Base64Url to standard Base64: - -> + and _ -> /
     input="${input//-/+}"
     input="${input//_//}"
-    # Add padding if needed
     local rem=$(( ${#input} % 4 ))
     if (( rem == 2 )); then input="${input}=="; elif (( rem == 3 )); then input="${input}="; fi
 

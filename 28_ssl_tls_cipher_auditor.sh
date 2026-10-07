@@ -1,17 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 28_ssl_tls_cipher_auditor.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Audit remote or local SSL/TLS endpoints for deprecated ciphers & TLS versions
-#  USAGE  : bash 28_ssl_tls_cipher_auditor.sh [HOST] [PORT]
-#           bash 28_ssl_tls_cipher_auditor.sh github.com 443
-#
-#  CONCEPTS COVERED:
-#    - OpenSSL s_client probing and cipher suite testing
-#    - Detecting insecure protocols (SSLv2, SSLv3, TLS 1.0, TLS 1.1)
-#    - Forward secrecy (ECDHE/DHE) validation
-#    - Colorized cryptographic risk categorization
-#    - Non-interactive batch security auditing
+# Script: 28_ssl_tls_cipher_auditor.sh
+# Problem Statement: Audit remote SSL/TLS endpoints to identify deprecated protocol versions (SSLv3, TLS 1.0/1.1) and insecure cipher suites.
 # =============================================================================
 
 set -euo pipefail
@@ -50,8 +40,7 @@ test_protocol() {
     local RISK_LEVEL="$3"
 
     printf "Testing %-12s : " "$PROTOCOL"
-    
-    # Try connecting with the specified TLS protocol
+
     if openssl s_client -connect "${TARGET_HOST}:${TARGET_PORT}" "$PROTO_FLAG" </dev/null &>/dev/null; then
         if [[ "$RISK_LEVEL" == "INSECURE" ]]; then
             echo -e "${RED}[VULNERABLE] Supported (${RISK_LEVEL})${RESET}"
@@ -67,10 +56,10 @@ test_protocol() {
 
 inspect_current_cipher() {
     echo -e "\n${BOLD}🔍 Current Active Handshake Details:${RESET}"
-    
+
     local HANDSHAKE_INFO
     HANDSHAKE_INFO=$(echo | openssl s_client -connect "${TARGET_HOST}:${TARGET_PORT}" -servername "${TARGET_HOST}" 2>/dev/null || true)
-    
+
     if [[ -z "$HANDSHAKE_INFO" ]]; then
         echo -e "${RED}[WARN] Could not establish connection to ${TARGET_HOST}:${TARGET_PORT}${RESET}"
         return
@@ -94,7 +83,7 @@ inspect_current_cipher() {
 main() {
     print_banner
     check_dependencies
-    
+
     echo -e "${BOLD}Protocol Support Matrix:${RESET}"
     test_protocol "SSLv3" "-ssl3" "INSECURE"
     test_protocol "TLS 1.0" "-tls1" "LEGACY"

@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 41_aws_ec2_cost_optimizer.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Audit AWS cloud resources for cost waste (unattached EBS, idle EIPs)
-#  USAGE  : bash 41_aws_ec2_cost_optimizer.sh [REGION]
-#           bash 41_aws_ec2_cost_optimizer.sh us-east-1
-#
-#  CONCEPTS COVERED:
-#    - AWS CLI JSON filtering via --query and JMESPath
-#    - Identifying available (unattached) EBS volumes
-#    - Identifying unassociated Elastic IP addresses (accruing hourly charges)
-#    - Offline cloud cost auditor simulator mode
+# Script: 41_aws_ec2_cost_optimizer.sh
+# Problem Statement: Audit AWS cloud infrastructure for cost leaks including unattached EBS volumes and disassociated Elastic IP addresses.
 # =============================================================================
 
 set -euo pipefail
@@ -37,7 +28,7 @@ print_banner() {
 
 run_simulation() {
     echo -e "${YELLOW}[SIMULATION] AWS CLI offline or unauthenticated. Demonstrating waste audit:${RESET}\n"
-    
+
     echo -e "${BOLD}1. Unattached EBS Storage Volumes (Wasting Monthly Spend):${RESET}"
     printf "  %-18s %-10s %-12s %-15s\n" "VOLUME ID" "SIZE" "TYPE" "MONTHLY COST"
     echo "  --------------------------------------------------------"

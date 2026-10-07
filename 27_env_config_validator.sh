@@ -1,22 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 27_env_config_validator.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Production .env Environment & Secret Key Validator
-#  USAGE  : bash 27_env_config_validator.sh [ENV_FILE] [EXAMPLE_FILE]
-#           bash 27_env_config_validator.sh .env .env.example
-#
-#  CONCEPTS COVERED:
-#    - Parsing KEY=VALUE formatted configuration files
-#    - Detecting missing required environment keys
-#    - Checking for empty / unset variable definitions
-#    - Associative arrays (declare -A) for dictionary lookups
-#    - CI/CD pre-flight deployment check exit codes
+# Script: 27_env_config_validator.sh
+# Problem Statement: Validate active .env configuration files against template .env.example definitions to prevent missing secrets in CI/CD.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -70,18 +59,14 @@ validate_env() {
     local empty_count=0
     local valid_count=0
 
-    # Extract all non-comment non-empty keys from example template
     while IFS='=' read -r key val || [[ -n "$key" ]]; do
-        # Strip comments and whitespace
         key=$(echo "$key" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
         [[ -z "$key" || "$key" =~ ^# ]] && continue
 
-        # Check if key exists in active env file
         if ! grep -q "^[[:space:]]*${key}=" "$ENV_FILE" 2>/dev/null; then
             echo -e "${RED}${BOLD}[MISSING KEY]${RESET} '$key' is required by template but absent in .env"
             ((missing_count++))
         else
-            # Extract assigned value
             local actual_val
             actual_val=$(grep "^[[:space:]]*${key}=" "$ENV_FILE" | head -n 1 | cut -d'=' -f2-)
             if [[ -z "$actual_val" ]]; then

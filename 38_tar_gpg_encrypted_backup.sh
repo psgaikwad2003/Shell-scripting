@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 38_tar_gpg_encrypted_backup.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Create AES-256 GPG encrypted tar archive backups with integrity hashes
-#  USAGE  : bash 38_tar_gpg_encrypted_backup.sh [SOURCE_DIR] [OUTPUT_DIR] [PASSPHRASE]
-#           bash 38_tar_gpg_encrypted_backup.sh /etc /backups/encrypted "SecretKey"
-#
-#  CONCEPTS COVERED:
-#    - Tar streaming directly into gpg symmetrically encrypted ciphertext
-#    - AES256 cryptographic cipher enforcement
-#    - SHA256 checksum generation of resulting encrypted artifact
-#    - Secure file permissions (chmod 600) on generated backups
+# Script: 38_tar_gpg_encrypted_backup.sh
+# Problem Statement: Create AES-256 GPG symmetrically encrypted tar backups with SHA256 integrity checksums for secure offsite storage.
 # =============================================================================
 
 set -euo pipefail
@@ -54,11 +45,10 @@ create_encrypted_backup() {
     local DEST_FILE="${OUTPUT_DIR}/${BACKUP_NAME}"
 
     echo -e "${BOLD}1. Compressing and Encrypting Payload...${RESET}"
-    
+
     if command -v gpg &>/dev/null; then
         tar -czf - -C "$(dirname "$SOURCE_DIR")" "$(basename "$SOURCE_DIR")" |             gpg --batch --yes --passphrase "$PASSPHRASE" --symmetric --cipher-algo AES256 -o "$DEST_FILE"
     else
-        # Fallback if gpg is missing: standard archive
         tar -czf "$DEST_FILE" -C "$(dirname "$SOURCE_DIR")" "$(basename "$SOURCE_DIR")"
     fi
 

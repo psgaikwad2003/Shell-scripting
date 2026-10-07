@@ -1,22 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 05_backup_rotator.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Automated Directory Backup with Gzip Compression & Retention Rotation
-#  USAGE  : bash 05_backup_rotator.sh [SOURCE_DIR] [BACKUP_DIR] [RETENTION_DAYS]
-#
-#  CONCEPTS COVERED:
-#    - Positional parameters & default values (${1:-default})
-#    - tar archive creation with gzip compression
-#    - File age calculation & find command with -mtime
-#    - Directory existence checks and mkdir -p
-#    - Functions with return codes & formatted log output
-#    - Safe file deletion and cleanup reporting
+# Script: 05_backup_rotator.sh
+# Problem Statement: Automate directory backups with Gzip compression and enforce rolling retention policies by pruning archives older than a specified duration.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -30,7 +19,6 @@ log_success() { echo -e "${GREEN}[SUCCESS]${RESET} $*"; }
 log_warn()    { echo -e "${YELLOW}[WARN]${RESET} $*"; }
 log_error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
 
-# ── Configuration & Defaults ──────────────────────────────────────────────────
 SOURCE_DIR="${1:-$HOME/data_to_backup}"
 BACKUP_DIR="${2:-$HOME/backups}"
 RETENTION_DAYS="${3:-7}"
@@ -69,11 +57,10 @@ validate_inputs() {
 
 create_backup() {
     log_info "Starting compression for: $SOURCE_DIR"
-    
+
     local start_time
     start_time="$(date +%s)"
 
-    # Create compressed archive excluding common unnecessary files
     tar --exclude='*.tmp' --exclude='.git' -czf "$TARGET_ARCHIVE" -C "$(dirname "$SOURCE_DIR")" "$(basename "$SOURCE_DIR")"
 
     local end_time
@@ -93,9 +80,8 @@ create_backup() {
 
 rotate_old_backups() {
     log_info "Checking for backups older than $RETENTION_DAYS day(s)..."
-    
+
     local old_backups
-    # Find .tar.gz archives matching pattern older than RETENTION_DAYS
     old_backups="$(find "$BACKUP_DIR" -maxdepth 1 -name "backup_*.tar.gz" -type f -mtime +"$RETENTION_DAYS" 2>/dev/null || true)"
 
     if [[ -z "$old_backups" ]]; then

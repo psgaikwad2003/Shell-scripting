@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 32_nginx_log_analyzer.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Parse web server (Nginx/Apache) access logs for traffic analytics & IP forensics
-#  USAGE  : bash 32_nginx_log_analyzer.sh [LOG_FILE]
-#           bash 32_nginx_log_analyzer.sh /var/log/nginx/access.log
-#
-#  CONCEPTS COVERED:
-#    - Text streaming pipelines (awk, sort, uniq, head)
-#    - Aggregating top IP requesters & top requested endpoints
-#    - HTTP status code distribution (2xx, 3xx, 4xx, 5xx)
-#    - Automatic synthetic sample generation for testing
+# Script: 32_nginx_log_analyzer.sh
+# Problem Statement: Parse Nginx/Apache access logs to extract top client IPs, top requested endpoints, and HTTP status code distributions.
 # =============================================================================
 
 set -euo pipefail

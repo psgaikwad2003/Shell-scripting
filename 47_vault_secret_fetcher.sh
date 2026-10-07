@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 47_vault_secret_fetcher.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Retrieve HashiCorp Vault secrets & generate ephemeral env variables
-#  USAGE  : bash 47_vault_secret_fetcher.sh [VAULT_ADDR] [SECRET_PATH]
-#           bash 47_vault_secret_fetcher.sh http://127.0.0.1:8200 secret/data/app
-#
-#  CONCEPTS COVERED:
-#    - Vault KV v2 secret engine REST API integration
-#    - Secure in-memory extraction without disk persistence
-#    - Restricting subshell permissions and token cleansing
+# Script: 47_vault_secret_fetcher.sh
+# Problem Statement: Fetch secrets from HashiCorp Vault KV v2 engine and securely inject them into runtime environment memory without disk persistence.
 # =============================================================================
 
 set -euo pipefail

@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 24_cron_job_auditor.sh
-#  LEVEL  : Intermediate - Advanced
-#  PURPOSE: Cron Job Security & Scheduling Auditor
-#  USAGE  : bash 24_cron_job_auditor.sh
-#
-#  CONCEPTS COVERED:
-#    - Inspecting system-wide cron directories (/etc/cron*, /etc/crontab)
-#    - Iterating across /var/spool/cron user crontabs
-#    - Checking executable and script permissions (detecting world-writable scripts)
-#    - Security compliance scanning for automated scheduled tasks
+# Script: 24_cron_job_auditor.sh
+# Problem Statement: Audit scheduled cron jobs across system and user crontabs for unquoted paths, insecure permissions, and suspicious commands.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -54,7 +45,6 @@ audit_system_crons() {
             file_count=$(find "$dir" -maxdepth 1 -type f 2>/dev/null | wc -l || echo 0)
             echo -e "  - Directory: ${CYAN}${dir}${RESET} (${file_count} script(s))"
 
-            # Check for dangerous permissions (world-writable)
             find "$dir" -maxdepth 1 -type f -perm -002 2>/dev/null | while read -r insecure_file; do
                 echo -e "    ${RED}${BOLD}[SECURITY RISK] World-writable cron file:${RESET} $insecure_file"
             done

@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 34_mysql_slow_query_parser.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Parse MySQL/MariaDB slow query logs & highlight queries exceeding SLA
-#  USAGE  : bash 34_mysql_slow_query_parser.sh [SLOW_LOG_FILE] [TIME_THRESHOLD_SECS]
-#           bash 34_mysql_slow_query_parser.sh /var/log/mysql/slow.log 2.0
-#
-#  CONCEPTS COVERED:
-#    - Multi-line block log parsing in bash
-#    - Floating-point time threshold comparison using bc / awk
-#    - Extraction of Query_time, Rows_examined, and Rows_sent
-#    - Automated synthetic slow query log generation
+# Script: 34_mysql_slow_query_parser.sh
+# Problem Statement: Parse MySQL/MariaDB slow query logs to identify queries violating execution time SLAs and examine row scan ratios.
 # =============================================================================
 
 set -euo pipefail

@@ -1,24 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 06_disk_space_alert.sh
-#  LEVEL  : Beginner - Intermediate
-#  PURPOSE: Filesystem Disk Space Threshold Monitor & Automated Alerting
-#  USAGE  : bash 06_disk_space_alert.sh [THRESHOLD_PERCENTAGE] [MOUNT_PATH]
-#
-#  CONCEPTS COVERED:
-#    - df command parsing with awk
-#    - String manipulation and arithmetic comparison (integer percentage)
-#    - Looping over filesystem mount points
-#    - Conditional alerts (OK vs WARNING vs CRITICAL)
-#    - Syslog logging simulation and formatted summary table
+# Script: 06_disk_space_alert.sh
+# Problem Statement: Monitor filesystem disk usage against predefined capacity thresholds and trigger high-priority alerts when limits are breached.
 # =============================================================================
 
 set -euo pipefail
 
-# Ignore virtual/pseudo filesystem types (tmpfs, devtmpfs, squashfs)
 EXCLUDED_FSTYPES="tmpfs|devtmpfs|squashfs|overlay"
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -45,18 +34,14 @@ print_header() {
 
 check_disk_usage() {
     local alert_count=0
-    
-    # Read output of df -h excluding temporary virtual filesystems (tmpfs, devtmpfs, squashfs)
+
     while read -r fs size used avail use_pct mount; do
-        # Extract numeric value from percentage (strip %)
         local usage_num="${use_pct%\%}"
 
-        # If a specific mount was requested, filter by it
         if [[ -n "$SPECIFIC_MOUNT" && "$mount" != "$SPECIFIC_MOUNT" ]]; then
             continue
         fi
 
-        # Skip header or invalid numerical entries
         if ! [[ "$usage_num" =~ ^[0-9]+$ ]]; then
             continue
         fi

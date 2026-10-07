@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 40_ansible_playbook_syntax_linter.sh
-#  LEVEL  : Intermediate
-#  PURPOSE: Validate Ansible playbooks & YAML syntax for IaC best practices
-#  USAGE  : bash 40_ansible_playbook_syntax_linter.sh [PLAYBOOK_FILE]
-#           bash 40_ansible_playbook_syntax_linter.sh playbook.yml
-#
-#  CONCEPTS COVERED:
-#    - YAML syntax verification via python yaml / ansible-lint
-#    - Scanning for anti-patterns (unnamed tasks, command vs shell module abuse)
-#    - Hardcoded secret / token pattern detection
-#    - Self-contained sample playbook generation
+# Script: 40_ansible_playbook_syntax_linter.sh
+# Problem Statement: Lint Ansible playbooks for YAML syntax validity, unnamed task anti-patterns, and exposed plaintext credentials.
 # =============================================================================
 
 set -euo pipefail
@@ -62,7 +53,6 @@ EOF
 lint_playbook() {
     echo -e "${BOLD}Running Ansible Syntax & Pattern Audit:${RESET}\n"
 
-    # Check 1: YAML validation
     if command -v python3 &>/dev/null; then
         if python3 -c "import yaml; yaml.safe_load(open('$PLAYBOOK'))" &>/dev/null; then
             echo -e "  [PASS] ${GREEN}YAML syntax is valid${RESET}"
@@ -71,7 +61,6 @@ lint_playbook() {
         fi
     fi
 
-    # Check 2: Unnamed tasks check
     local UNNAMED_TASKS
     UNNAMED_TASKS=$(grep -nE "^\s*-\s*(command|shell|copy|apt|yum):" "$PLAYBOOK" || true)
     if [[ -n "$UNNAMED_TASKS" ]]; then
@@ -81,7 +70,6 @@ lint_playbook() {
         echo -e "  [PASS] ${GREEN}All tasks are properly named${RESET}"
     fi
 
-    # Check 3: Check for plaintext secrets
     if grep -inE "(password|secret|api_key|token):\s+[^\{]" "$PLAYBOOK" &>/dev/null; then
         echo -e "  [FAIL] ${RED}Potential hardcoded secret discovered! Use ansible-vault instead.${RESET}"
     else

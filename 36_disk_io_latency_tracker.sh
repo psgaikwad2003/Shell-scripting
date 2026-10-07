@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 36_disk_io_latency_tracker.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Track block storage disk I/O latency, IOPS & queue saturation
-#  USAGE  : bash 36_disk_io_latency_tracker.sh [INTERVAL_SECONDS] [COUNT]
-#           bash 36_disk_io_latency_tracker.sh 2 3
-#
-#  CONCEPTS COVERED:
-#    - Parsing /proc/diskstats and sysfs block devices
-#    - iostat integration when sysstat package is installed
-#    - Calculating read/write latency delta intervals
-#    - Identifying disk saturation & high await times
+# Script: 36_disk_io_latency_tracker.sh
+# Problem Statement: Track block device I/O operations, queue saturation, and average latency to diagnose storage performance bottlenecks.
 # =============================================================================
 
 set -euo pipefail

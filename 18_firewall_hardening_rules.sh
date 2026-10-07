@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  SCRIPT : 18_firewall_hardening_rules.sh
-#  LEVEL  : Advanced
-#  PURPOSE: Baseline Security Firewall Hardening & Rule Configurator
-#  USAGE  : bash 18_firewall_hardening_rules.sh [--apply|--show]
-#
-#  CONCEPTS COVERED:
-#    - UFW (Uncomplicated Firewall) and iptables management
-#    - Principle of least privilege: default deny incoming, allow outgoing
-#    - State tracking: ESTABLISHED, RELATED connection preservation
-#    - Protecting SSH port with connection rate limiting
-#    - Unprivileged simulation mode
+# Script: 18_firewall_hardening_rules.sh
+# Problem Statement: Configure and enforce baseline firewall security policies (iptables/UFW), restricting unnecessary inbound ports.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
