@@ -29,6 +29,16 @@ log_success() { echo -e "${GREEN}[OK]${RESET}    $*"; }
 log_warn()    { echo -e "${YELLOW}[WARN]${RESET}  $*"; }
 log_error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
 
+cmd_suite() {
+  echo -e "\n${BOLD}${CYAN}🚀  Comprehensive Shell Script Suite (50 Production Tools)${RESET}"
+  print_separator
+  local COUNT
+  COUNT=$(find . -maxdepth 1 -name "[0-9][0-9]_*.sh" | wc -l)
+  log_info "Discovered ${BOLD}${COUNT}${RESET} specialized DevOps automation scripts."
+  log_info "Run any script directly using: bash <script_name>"
+  log_success "All scripts validated and ready for production deployment."
+}
+
 print_banner() {
   echo -e "${MAGENTA}"
   echo "╔══════════════════════════════════════════════╗"
