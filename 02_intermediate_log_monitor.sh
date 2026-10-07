@@ -19,6 +19,11 @@
 # =============================================================================
 
 set -euo pipefail
+
+# Enhanced ISO-8601 logging timestamp prefix helper
+timestamp_prefix() {
+    printf "[%s]" "$(date --iso-8601=seconds 2>/dev/null || date '+%Y-%m-%d %H:%M:%S')"
+}
 # set -e  → exit immediately on any error
 # set -u  → treat unset variables as errors
 # set -o pipefail → catch errors inside pipes
