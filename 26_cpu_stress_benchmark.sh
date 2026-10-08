@@ -13,7 +13,32 @@ CYAN="\033[0;36m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
-ITERATIONS="${1:-100000}"
+ITERATIONS=100000
+LOG_FILE="${REPORT_LOG_FILE:-}"
+
+log_info() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${GREEN}[INFO]${RESET} [${ts}] ${msg}"
+    [[ -n "$LOG_FILE" ]] && echo "[INFO] [${ts}] ${msg}" >> "$LOG_FILE"
+}
+
+log_warn() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${YELLOW}[WARN]${RESET} [${ts}] ${msg}"
+    [[ -n "$LOG_FILE" ]] && echo "[WARN] [${ts}] ${msg}" >> "$LOG_FILE"
+}
+
+log_error() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${RED}[ERROR]${RESET} [${ts}] ${msg}" >&2
+    [[ -n "$LOG_FILE" ]] && echo "[ERROR] [${ts}] ${msg}" >> "$LOG_FILE"
+}
 
 print_header() {
     echo -e "${CYAN}${BOLD}"
@@ -23,6 +48,7 @@ print_header() {
     echo -e "${RESET}"
     echo "Iterations : $ITERATIONS rounds of SHA-256 hashing"
     echo "Timestamp  : $(date '+%Y-%m-%d %H:%M:%S')"
+    [[ -n "$LOG_FILE" ]] && echo "Log Target : $LOG_FILE"
     echo "------------------------------------------------------------"
 }
 
@@ -32,27 +58,25 @@ get_core_count() {
     elif [[ -f /proc/cpuinfo ]]; then
         grep -c '^processor' /proc/cpuinfo
     else
-        echo 2 # safe default
+        echo 2
     fi
 }
 
 run_worker_bench() {
     local worker_id="$1"
     local rounds="$2"
-    echo -n "Core Worker #$worker_id running..."
     local dummy="benchmark_seed_data_$(date +%s%N)"
     for ((i=1; i<=rounds; i++)); do
         dummy=$(echo "$dummy" | sha256sum 2>/dev/null | cut -d' ' -f1 || echo "$dummy")
     done
-    echo " Done."
 }
 
 run_benchmark() {
     local cores
     cores=$(get_core_count)
-    echo -e "Detected CPU Cores: ${BOLD}${cores}${RESET}\n"
+    log_info "Detected CPU Cores: $cores"
+    log_info "Spawning benchmark workers ($ITERATIONS iterations per core)..."
 
-    echo "Spawning benchmark worker across all detected cores..."
     local start_time
     start_time="$(date +%s)"
 
@@ -74,12 +98,51 @@ run_benchmark() {
     echo -e "Total Time Taken : ${CYAN}${total_time}s${RESET}"
     echo -e "Throughput Rate  : ${GREEN}${BOLD}${ops_per_sec} ops/sec${RESET}"
     echo "------------------------------------------------------------"
+
+    log_info "Benchmark complete: elapsed=${total_time}s, throughput=${ops_per_sec} ops/sec"
+}
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -i|--iterations)
+                ITERATIONS="$2"
+                shift 2
+                ;;
+            -o|--output|--log-file)
+                LOG_FILE="$2"
+                shift 2
+                ;;
+            -h|--help)
+                echo "Usage: $0 [OPTIONS] [ITERATIONS]"
+                echo "Options:"
+                echo "  -i, --iterations NUM                 Number of SHA-256 iterations per worker"
+                echo "  -o, --output FILE, --log-file FILE   Write benchmark telemetry and results to file"
+                echo "  -h, --help                           Show this help message and exit"
+                exit 0
+                ;;
+            *)
+                if [[ "$1" =~ ^[0-9]+$ ]]; then
+                    ITERATIONS="$1"
+                else
+                    log_error "Unknown parameter: $1"
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
 }
 
 main() {
+    parse_args "$@"
+    if [[ -n "$LOG_FILE" ]]; then
+        mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+        : > "$LOG_FILE"
+    fi
     print_header
     run_benchmark
-    echo -e "${GREEN}✔ CPU benchmark execution complete.${RESET}"
+    log_info "CPU benchmark run completed successfully."
 }
 
 main "$@"
