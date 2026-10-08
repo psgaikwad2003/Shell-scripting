@@ -13,8 +13,33 @@ CYAN="\033[0;36m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
-NAMESPACE="${1:---all-namespaces}"
-MAX_RESTARTS="${2:-5}"
+NAMESPACE="--all-namespaces"
+MAX_RESTARTS=5
+LOG_FILE="${REPORT_LOG_FILE:-}"
+
+log_info() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${GREEN}[INFO]${RESET} [${ts}] ${msg}"
+    [[ -n "$LOG_FILE" ]] && echo "[INFO] [${ts}] ${msg}" >> "$LOG_FILE"
+}
+
+log_warn() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${YELLOW}[WARN]${RESET} [${ts}] ${msg}"
+    [[ -n "$LOG_FILE" ]] && echo "[WARN] [${ts}] ${msg}" >> "$LOG_FILE"
+}
+
+log_error() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${RED}[ERROR]${RESET} [${ts}] ${msg}" >&2
+    [[ -n "$LOG_FILE" ]] && echo "[ERROR] [${ts}] ${msg}" >> "$LOG_FILE"
+}
 
 print_banner() {
     echo -e "${CYAN}${BOLD}"
@@ -25,11 +50,12 @@ print_banner() {
     echo "Namespace Filter : $NAMESPACE"
     echo "Restart Threshold: $MAX_RESTARTS restarts"
     echo "Timestamp        : $(date '+%Y-%m-%d %H:%M:%S')"
+    [[ -n "$LOG_FILE" ]] && echo "Log Target       : $LOG_FILE"
     echo "------------------------------------------------------------"
 }
 
 run_mock_diagnostic() {
-    echo -e "${YELLOW}[NOTICE] 'kubectl' not found or cluster unreachable. Running diagnostic simulation mode.${RESET}\n"
+    log_warn "'kubectl' not found or cluster unreachable. Running diagnostic simulation mode."
 
     printf "%-20s %-30s %-12s %-10s %-15s\n" "NAMESPACE" "POD NAME" "STATUS" "RESTARTS" "HEALTH"
     echo "----------------------------------------------------------------------------------------"
@@ -39,9 +65,8 @@ run_mock_diagnostic() {
     printf "%-20s %-30s %-12s %-10s ${YELLOW}%-15s${RESET}\n" "monitoring" "grafana-5f4b59b58-q4pl9" "Pending" "0" "PENDING_SCHEDULE"
     printf "%-20s %-30s %-12s %-10s ${RED}%-15s${RESET}\n" "ingress" "cert-manager-5d46c8b9f-lk8m2" "OOMKilled" "8" "OUT_OF_MEMORY"
 
-    echo -e "\n${BOLD}Simulation Recommendations:${RESET}"
-    echo "  1. Investigate worker-queue: 'kubectl logs -n staging worker-queue-69d8b8cc7-7zkm1 --previous'"
-    echo "  2. Increase memory limits for cert-manager in ingress namespace."
+    log_warn "Simulation Recommendation: Investigate worker-queue logs (CrashLoop with 14 restarts)."
+    log_warn "Simulation Recommendation: Increase memory limits for cert-manager in ingress (OOMKilled)."
 }
 
 audit_cluster() {
@@ -57,7 +82,7 @@ audit_cluster() {
         NS_FLAG="-A"
     fi
 
-    echo -e "${BOLD}Querying cluster pod metrics...${RESET}\n"
+    log_info "Querying cluster pod metrics for namespace filter: $NAMESPACE..."
 
     local POD_DATA
     if ! POD_DATA=$(kubectl get pods $NS_FLAG --no-headers -o custom-columns="NS:.metadata.namespace,NAME:.metadata.name,STATUS:.status.phase,RESTARTS:.status.containerStatuses[0].restartCount" 2>/dev/null); then
@@ -77,17 +102,67 @@ audit_cluster() {
         restarts="${restarts:-0}"
         if [[ "$restarts" =~ ^[0-9]+$ ]] && (( restarts >= MAX_RESTARTS )); then
             printf "%-20s %-35s %-15s ${RED}%-10s [EXCEEDED THRESHOLD]${RESET}\n" "$ns" "$name" "$status" "$restarts"
+            log_error "Pod $name in $ns exceeded restart threshold: $restarts restarts"
             ((ISSUES_FOUND++)) || true
         elif [[ "$status" != "Running" ]] && [[ "$status" != "Completed" ]]; then
             printf "%-20s %-35s ${YELLOW}%-15s${RESET} %-10s\n" "$ns" "$name" "$status" "$restarts"
+            log_warn "Pod $name in $ns is non-running: status=$status"
             ((ISSUES_FOUND++)) || true
         else
             printf "%-20s %-35s ${GREEN}%-15s${RESET} %-10s\n" "$ns" "$name" "$status" "$restarts"
         fi
     done <<< "$POD_DATA"
 
-    echo -e "\nSummary: Audit completed with $ISSUES_FOUND alert(s) detected."
+    log_info "Audit complete: $ISSUES_FOUND issue(s) detected across target namespace(s)."
 }
 
-print_banner
-audit_cluster
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -n|--namespace)
+                NAMESPACE="$2"
+                shift 2
+                ;;
+            -r|--max-restarts)
+                MAX_RESTARTS="$2"
+                shift 2
+                ;;
+            -o|--output|--log-file)
+                LOG_FILE="$2"
+                shift 2
+                ;;
+            -h|--help)
+                echo "Usage: $0 [OPTIONS] [NAMESPACE] [MAX_RESTARTS]"
+                echo "Options:"
+                echo "  -n, --namespace NAMESPACE            Kubernetes namespace (default: --all-namespaces)"
+                echo "  -r, --max-restarts NUM               Max allowed container restarts (default: 5)"
+                echo "  -o, --output FILE, --log-file FILE   Write pod audit report to file"
+                echo "  -h, --help                           Show this help message and exit"
+                exit 0
+                ;;
+            *)
+                if [[ -z "${1_pos:-}" ]]; then
+                    NAMESPACE="$1"
+                    1_pos=1
+                elif [[ -z "${2_pos:-}" ]]; then
+                    MAX_RESTARTS="$1"
+                    2_pos=1
+                fi
+                shift
+                ;;
+        esac
+    done
+}
+
+main() {
+    parse_args "$@"
+    if [[ -n "$LOG_FILE" ]]; then
+        mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+        : > "$LOG_FILE"
+    fi
+    print_banner
+    audit_cluster
+    log_info "Kubernetes pod inspection cycle concluded."
+}
+
+main "$@"
