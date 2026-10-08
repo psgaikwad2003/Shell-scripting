@@ -13,7 +13,32 @@ CYAN="\033[0;36m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
-SYN_THRESHOLD="${1:-25}"
+SYN_THRESHOLD=25
+LOG_FILE="${REPORT_LOG_FILE:-}"
+
+log_info() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${GREEN}[INFO]${RESET} [${ts}] ${msg}"
+    [[ -n "$LOG_FILE" ]] && echo "[INFO] [${ts}] ${msg}" >> "$LOG_FILE"
+}
+
+log_warn() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${YELLOW}[WARN]${RESET} [${ts}] ${msg}"
+    [[ -n "$LOG_FILE" ]] && echo "[WARN] [${ts}] ${msg}" >> "$LOG_FILE"
+}
+
+log_error() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${RED}[ERROR]${RESET} [${ts}] ${msg}" >&2
+    [[ -n "$LOG_FILE" ]] && echo "[ERROR] [${ts}] ${msg}" >> "$LOG_FILE"
+}
 
 print_banner() {
     echo -e "${CYAN}${BOLD}"
@@ -23,6 +48,7 @@ print_banner() {
     echo -e "${RESET}"
     echo "SYN Alert Limit : >= $SYN_THRESHOLD half-open sockets"
     echo "Timestamp       : $(date '+%Y-%m-%d %H:%M:%S')"
+    [[ -n "$LOG_FILE" ]] && echo "Log Target      : $LOG_FILE"
     echo "------------------------------------------------------------"
 }
 
@@ -43,22 +69,63 @@ audit_sockets() {
         SYN_RECV=2; ESTAB=18; TIME_WAIT=12; LISTEN=6
     fi
 
-    echo -e "${BOLD}Current TCP Socket Distribution:${RESET}"
-    printf "  %-20s : %s\n" "LISTENING" "$LISTEN"
-    printf "  %-20s : %s\n" "ESTABLISHED" "$ESTAB"
-    printf "  %-20s : %s\n" "TIME_WAIT" "$TIME_WAIT"
+    log_info "TCP Socket Distribution Summary:"
+    log_info "  LISTENING    : $LISTEN"
+    log_info "  ESTABLISHED  : $ESTAB"
+    log_info "  TIME_WAIT    : $TIME_WAIT"
+    log_info "  SYN_RECV     : $SYN_RECV"
 
     if (( SYN_RECV >= SYN_THRESHOLD )); then
-        printf "  %-20s : ${RED}%s [POTENTIAL SYN FLOOD]${RESET}\n" "SYN_RECV (Half-Open)" "$SYN_RECV"
-        echo -e "\n${RED}⚠ WARNING: SYN half-open connections exceed threshold ($SYN_THRESHOLD)!${RESET}"
-        echo "Recommendations:"
-        echo "  - Enable SYN Cookies: sysctl -w net.ipv4.tcp_syncookies=1"
-        echo "  - Increase backlog: sysctl -w net.ipv4.tcp_max_syn_backlog=4096"
+        log_error "POTENTIAL SYN FLOOD DETECTED: $SYN_RECV half-open sockets exceeds threshold ($SYN_THRESHOLD)!"
+        log_warn "Mitigation Advice:"
+        log_warn "  1. Enable TCP syncookies: sysctl -w net.ipv4.tcp_syncookies=1"
+        log_warn "  2. Increase SYN backlog: sysctl -w net.ipv4.tcp_max_syn_backlog=4096"
     else
-        printf "  %-20s : ${GREEN}%s (Normal)${RESET}\n" "SYN_RECV (Half-Open)" "$SYN_RECV"
-        echo -e "\n${GREEN}✔ Socket connection states within normal baseline limits.${RESET}"
+        log_info "Socket connection states within normal limits ($SYN_RECV < $SYN_THRESHOLD)."
     fi
 }
 
-print_banner
-audit_sockets
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -t|--threshold)
+                SYN_THRESHOLD="$2"
+                shift 2
+                ;;
+            -o|--output|--log-file)
+                LOG_FILE="$2"
+                shift 2
+                ;;
+            -h|--help)
+                echo "Usage: $0 [OPTIONS] [SYN_THRESHOLD]"
+                echo "Options:"
+                echo "  -t, --threshold NUM                  SYN_RECV warning alert count (default: 25)"
+                echo "  -o, --output FILE, --log-file FILE   Write socket telemetry report to file"
+                echo "  -h, --help                           Show this help message and exit"
+                exit 0
+                ;;
+            *)
+                if [[ "$1" =~ ^[0-9]+$ ]]; then
+                    SYN_THRESHOLD="$1"
+                else
+                    log_error "Unknown parameter: $1"
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
+}
+
+main() {
+    parse_args "$@"
+    if [[ -n "$LOG_FILE" ]]; then
+        mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+        : > "$LOG_FILE"
+    fi
+    print_banner
+    audit_sockets
+    log_info "TCP socket flood detection cycle completed."
+}
+
+main "$@"
