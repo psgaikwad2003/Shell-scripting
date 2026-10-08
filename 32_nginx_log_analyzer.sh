@@ -13,7 +13,32 @@ CYAN="\033[0;36m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
-LOG_FILE="${1:-/tmp/sample_nginx_access.log}"
+ACCESS_LOG="/tmp/sample_nginx_access.log"
+OUTPUT_REPORT="${REPORT_LOG_FILE:-}"
+
+log_info() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${GREEN}[INFO]${RESET} [${ts}] ${msg}"
+    [[ -n "$OUTPUT_REPORT" ]] && echo "[INFO] [${ts}] ${msg}" >> "$OUTPUT_REPORT"
+}
+
+log_warn() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${YELLOW}[WARN]${RESET} [${ts}] ${msg}"
+    [[ -n "$OUTPUT_REPORT" ]] && echo "[WARN] [${ts}] ${msg}" >> "$OUTPUT_REPORT"
+}
+
+log_error() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${RED}[ERROR]${RESET} [${ts}] ${msg}" >&2
+    [[ -n "$OUTPUT_REPORT" ]] && echo "[ERROR] [${ts}] ${msg}" >> "$OUTPUT_REPORT"
+}
 
 print_banner() {
     echo -e "${CYAN}${BOLD}"
@@ -21,15 +46,16 @@ print_banner() {
     echo "       📊  NGINX / APACHE ACCESS LOG TRAFFIC ANALYZER       "
     echo "============================================================"
     echo -e "${RESET}"
-    echo "Log Target : $LOG_FILE"
-    echo "Timestamp  : $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "Log Target    : $ACCESS_LOG"
+    echo "Timestamp     : $(date '+%Y-%m-%d %H:%M:%S')"
+    [[ -n "$OUTPUT_REPORT" ]] && echo "Report Output : $OUTPUT_REPORT"
     echo "------------------------------------------------------------"
 }
 
 seed_sample_log_if_missing() {
-    if [[ ! -f "$LOG_FILE" ]]; then
-        echo -e "${YELLOW}[INFO] Creating sample synthetic log at $LOG_FILE for demonstration.${RESET}"
-        cat << 'EOF' > "$LOG_FILE"
+    if [[ ! -f "$ACCESS_LOG" ]]; then
+        log_warn "Creating synthetic demo access log at $ACCESS_LOG."
+        cat << 'EOF' > "$ACCESS_LOG"
 192.168.1.105 - - [07/Oct/2026:10:00:01 +0000] "GET /api/v1/users HTTP/1.1" 200 4523
 192.168.1.105 - - [07/Oct/2026:10:00:05 +0000] "GET /api/v1/users HTTP/1.1" 200 4523
 10.0.0.12 - - [07/Oct/2026:10:00:10 +0000] "POST /login HTTP/1.1" 200 1204
@@ -46,31 +72,71 @@ EOF
 
 analyze_logs() {
     local TOTAL_REQUESTS
-    TOTAL_REQUESTS=$(wc -l < "$LOG_FILE")
-    echo -e "${BOLD}Total Requests Logged:${RESET} $TOTAL_REQUESTS\n"
+    TOTAL_REQUESTS=$(wc -l < "$ACCESS_LOG")
+    log_info "Total Requests Logged: $TOTAL_REQUESTS"
 
-    echo -e "${BOLD}🌐 Top 5 Requisitioning Client IP Addresses:${RESET}"
-    awk '{print $1}' "$LOG_FILE" | sort | uniq -c | sort -nr | head -n 5 | while read -r count ip; do
-        printf "  %-6s requests from  %s\n" "$count" "$ip"
-    done
+    log_info "Top Client IP Addresses:"
+    while read -r count ip; do
+        [[ -z "$count" ]] && continue
+        log_info "  ↳ $count requests from $ip"
+    done < <(awk '{print $1}' "$ACCESS_LOG" | sort | uniq -c | sort -nr | head -n 5)
 
-    echo -e "\n${BOLD}🔗 Top 5 Most Requested Endpoints / URLs:${RESET}"
-    awk '{print $7}' "$LOG_FILE" | sort | uniq -c | sort -nr | head -n 5 | while read -r count url; do
-        printf "  %-6s hits        %s\n" "$count" "$url"
-    done
+    log_info "Top Requested Endpoints / URLs:"
+    while read -r count url; do
+        [[ -z "$count" ]] && continue
+        log_info "  ↳ $count hits on $url"
+    done < <(awk '{print $7}' "$ACCESS_LOG" | sort | uniq -c | sort -nr | head -n 5)
 
-    echo -e "\n${BOLD}📈 HTTP Response Status Code Breakdown:${RESET}"
-    awk '{print $9}' "$LOG_FILE" | sort | uniq -c | sort -nr | while read -r count status; do
+    log_info "HTTP Response Status Code Breakdown:"
+    while read -r count status; do
+        [[ -z "$count" ]] && continue
         case "$status" in
-            2*) printf "  ${GREEN}%-6s [%s OK]${RESET}\n" "$count" "$status" ;;
-            3*) printf "  ${CYAN}%-6s [%s REDIRECT]${RESET}\n" "$count" "$status" ;;
-            4*) printf "  ${YELLOW}%-6s [%s CLIENT ERROR]${RESET}\n" "$count" "$status" ;;
-            5*) printf "  ${RED}%-6s [%s SERVER ERROR]${RESET}\n" "$count" "$status" ;;
-            *)  printf "  %-6s [%s OTHER]\n" "$count" "$status" ;;
+            2*) log_info "  ↳ $count [$status OK]" ;;
+            3*) log_info "  ↳ $count [$status REDIRECT]" ;;
+            4*) log_warn "  ↳ $count [$status CLIENT ERROR]" ;;
+            5*) log_error "  ↳ $count [$status SERVER ERROR]" ;;
+            *)  log_info "  ↳ $count [$status OTHER]" ;;
+        esac
+    done < <(awk '{print $9}' "$ACCESS_LOG" | sort | uniq -c | sort -nr)
+}
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -i|--input)
+                ACCESS_LOG="$2"
+                shift 2
+                ;;
+            -o|--output|--log-file)
+                OUTPUT_REPORT="$2"
+                shift 2
+                ;;
+            -h|--help)
+                echo "Usage: $0 [OPTIONS] [ACCESS_LOG]"
+                echo "Options:"
+                echo "  -i, --input FILE                     Access log file path"
+                echo "  -o, --output FILE, --log-file FILE   Write traffic analytics report to file"
+                echo "  -h, --help                           Show this help message and exit"
+                exit 0
+                ;;
+            *)
+                ACCESS_LOG="$1"
+                shift
+                ;;
         esac
     done
 }
 
-print_banner
-seed_sample_log_if_missing
-analyze_logs
+main() {
+    parse_args "$@"
+    if [[ -n "$OUTPUT_REPORT" ]]; then
+        mkdir -p "$(dirname "$OUTPUT_REPORT")" 2>/dev/null || true
+        : > "$OUTPUT_REPORT"
+    fi
+    print_banner
+    seed_sample_log_if_missing
+    analyze_logs
+    log_info "Nginx access log analysis completed."
+}
+
+main "$@"
