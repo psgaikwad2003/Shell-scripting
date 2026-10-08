@@ -15,14 +15,31 @@ RESET="\033[0m"
 
 MODE="dry-run"
 BASE_BRANCH="main"
+LOG_FILE="${REPORT_LOG_FILE:-}"
 
-for arg in "$@"; do
-    case "$arg" in
-        --force) MODE="force" ;;
-        --dry-run) MODE="dry-run" ;;
-        *) BASE_BRANCH="$arg" ;;
-    esac
-done
+log_info() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${GREEN}[INFO]${RESET} [${ts}] ${msg}"
+    [[ -n "$LOG_FILE" ]] && echo "[INFO] [${ts}] ${msg}" >> "$LOG_FILE"
+}
+
+log_warn() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${YELLOW}[WARN]${RESET} [${ts}] ${msg}"
+    [[ -n "$LOG_FILE" ]] && echo "[WARN] [${ts}] ${msg}" >> "$LOG_FILE"
+}
+
+log_error() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${RED}[ERROR]${RESET} [${ts}] ${msg}" >&2
+    [[ -n "$LOG_FILE" ]] && echo "[ERROR] [${ts}] ${msg}" >> "$LOG_FILE"
+}
 
 PROTECTED_BRANCHES=("main" "master" "develop" "dev" "staging" "production")
 
@@ -35,6 +52,8 @@ print_banner() {
     echo "Base Target Branch: $BASE_BRANCH"
     echo "Execution Mode    : $MODE"
     echo "Protected Targets : ${PROTECTED_BRANCHES[*]}"
+    echo "Timestamp         : $(date '+%Y-%m-%d %H:%M:%S')"
+    [[ -n "$LOG_FILE" ]] && echo "Log Target        : $LOG_FILE"
     echo "------------------------------------------------------------"
 }
 
@@ -50,17 +69,17 @@ is_protected() {
 
 clean_branches() {
     if ! git rev-parse --is-inside-work-tree &>/dev/null; then
-        echo -e "${RED}[ERROR] Current directory is not a Git repository.${RESET}" >&2
+        log_error "Current directory is not a Git repository."
         exit 1
     fi
 
-    echo -e "${BOLD}Fetching latest remote state...${RESET}"
+    log_info "Fetching latest remote state with prune..."
     git fetch --prune &>/dev/null || true
 
     local CURRENT_BRANCH
     CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
-    echo -e "\nScanning branches merged into ${CYAN}${BASE_BRANCH}${RESET}..."
+    log_info "Scanning branches merged into $BASE_BRANCH (current branch: $CURRENT_BRANCH)..."
 
     local MERGED_BRANCHES=()
     while IFS= read -r branch; do
@@ -73,25 +92,71 @@ clean_branches() {
     done < <(git branch --merged "$BASE_BRANCH" 2>/dev/null || true)
 
     if [[ ${#MERGED_BRANCHES[@]} -eq 0 ]]; then
-        echo -e "${GREEN}✔ No stale merged branches found. Working repository is tidy!${RESET}"
+        log_info "No stale merged branches found. Working repository is clean."
         return 0
     fi
 
-    echo -e "${YELLOW}Found ${#MERGED_BRANCHES[@]} candidate branch(es) to prune:${RESET}"
+    log_warn "Found ${#MERGED_BRANCHES[@]} candidate branch(es) to prune:"
     for b in "${MERGED_BRANCHES[@]}"; do
-        echo "  - $b"
+        log_info "  - $b"
     done
 
     if [[ "$MODE" == "dry-run" ]]; then
-        echo -e "\n${CYAN}[DRY-RUN] No branches were deleted. Re-run with --force to execute deletion.${RESET}"
+        log_info "[DRY-RUN] No branches deleted. Re-run with --force to execute deletion."
     else
-        echo -e "\n${RED}Proceeding with deletion...${RESET}"
+        log_warn "Proceeding with branch deletion..."
         for b in "${MERGED_BRANCHES[@]}"; do
-            git branch -d "$b" && echo -e "  ${GREEN}Deleted local branch:${RESET} $b"
+            git branch -d "$b" && log_info "Deleted local branch: $b"
         done
-        echo -e "\n${GREEN}✔ Branch pruning complete.${RESET}"
+        log_info "Branch pruning complete."
     fi
 }
 
-print_banner
-clean_branches
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --force)
+                MODE="force"
+                shift
+                ;;
+            --dry-run)
+                MODE="dry-run"
+                shift
+                ;;
+            -b|--base)
+                BASE_BRANCH="$2"
+                shift 2
+                ;;
+            -o|--output|--log-file)
+                LOG_FILE="$2"
+                shift 2
+                ;;
+            -h|--help)
+                echo "Usage: $0 [OPTIONS] [BASE_BRANCH]"
+                echo "Options:"
+                echo "  -b, --base BRANCH                    Base branch to check merged status against (default: main)"
+                echo "      --dry-run | --force              Preview mode vs actual deletion"
+                echo "  -o, --output FILE, --log-file FILE   Write branch pruning log to file"
+                echo "  -h, --help                           Show this help message and exit"
+                exit 0
+                ;;
+            *)
+                BASE_BRANCH="$1"
+                shift
+                ;;
+        esac
+    done
+}
+
+main() {
+    parse_args "$@"
+    if [[ -n "$LOG_FILE" ]]; then
+        mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+        : > "$LOG_FILE"
+    fi
+    print_banner
+    clean_branches
+    log_info "Git branch audit complete."
+}
+
+main "$@"
