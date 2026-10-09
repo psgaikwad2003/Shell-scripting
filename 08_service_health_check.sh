@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+SERVICES=("nginx" "sshd" "docker" "cron")
+LOG_FILE="${REPORT_LOG_FILE:-}"
+AUTO_RESTART=true
+
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -13,17 +17,39 @@ CYAN="\033[0;36m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
-SERVICES=("${@:-nginx sshd docker cron}")
-ALERT_LOG="/tmp/service_watchdog.log"
+log_info() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${GREEN}[INFO]${RESET} [${ts}] ${msg}"
+    [[ -n "$LOG_FILE" ]] && echo "[INFO] [${ts}] ${msg}" >> "$LOG_FILE"
+}
+
+log_warn() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${YELLOW}[WARN]${RESET} [${ts}] ${msg}"
+    [[ -n "$LOG_FILE" ]] && echo "[WARN] [${ts}] ${msg}" >> "$LOG_FILE"
+}
+
+log_error() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${RED}[ERROR]${RESET} [${ts}] ${msg}" >&2
+    [[ -n "$LOG_FILE" ]] && echo "[ERROR] [${ts}] ${msg}" >> "$LOG_FILE"
+}
 
 print_header() {
     echo -e "${CYAN}${BOLD}"
     echo "============================================================"
-    echo "       🩺  SERVICE AVAILABILITY & HEALTH WATCHDOG            "
+    echo "       🩺   SERVICE AVAILABILITY & HEALTH WATCHDOG            "
     echo "============================================================"
     echo -e "${RESET}"
-    echo "Monitored Services: ${SERVICES[*]}"
+    echo "Monitored Services : ${SERVICES[*]}"
     echo "Timestamp          : $(date '+%Y-%m-%d %H:%M:%S')"
+    [[ -n "$LOG_FILE" ]] && echo "Log Target         : $LOG_FILE"
     echo "------------------------------------------------------------"
 }
 
@@ -38,14 +64,20 @@ is_service_running() {
 
 restart_service() {
     local svc="$1"
-    echo -e "${YELLOW}Attempting to restart '$svc'...${RESET}"
+    log_warn "Attempting automated restart for '$svc'..."
+
     if command -v systemctl &>/dev/null && [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
-        systemctl restart "$svc" 2>/dev/null && return 0
+        if systemctl restart "$svc" 2>/dev/null; then
+            log_info "Service '$svc' restarted successfully via systemctl."
+            return 0
+        else
+            log_error "Failed to restart service '$svc' via systemctl."
+            return 1
+        fi
     else
-        echo -e "${YELLOW}[DRY-RUN / UNPRIVILEGED] Restart simulation for '$svc' triggered.${RESET}"
+        log_warn "[SIMULATION] Non-root/simulated restart triggered for '$svc'."
         return 0
     fi
-    return 1
 }
 
 audit_services() {
@@ -59,21 +91,72 @@ audit_services() {
         else
             echo -e "Service [${RED}${BOLD}DOWN${RESET}] : ${svc}"
             ((down_count++))
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Service '$svc' detected DOWN." >> "$ALERT_LOG" 2>/dev/null || true
+            log_error "Service '$svc' detected in DOWN/INACTIVE state."
 
-            if restart_service "$svc"; then
-                echo -e "${GREEN}  ↳ Service '$svc' restarted successfully.${RESET}"
-            else
-                echo -e "${RED}  ↳ Failed to restart service '$svc'. Manual intervention required!${RESET}"
+            if [[ "$AUTO_RESTART" == "true" ]]; then
+                if restart_service "$svc"; then
+                    log_info "Service '$svc' recovery executed."
+                else
+                    log_error "Service '$svc' failed to recover. Manual intervention required!"
+                fi
             fi
         fi
     done
 
     echo "------------------------------------------------------------"
-    echo -e "Summary: ${GREEN}$up_count Healthy${RESET} | ${RED}$down_count Inactive${RESET}"
+    log_info "Audit Summary: $up_count Healthy | $down_count Inactive"
+}
+
+parse_args() {
+    local custom_services=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -s|--services)
+                read -ra custom_services <<< "$2"
+                SERVICES=("${custom_services[@]}")
+                shift 2
+                ;;
+            -o|--output|--log-file)
+                LOG_FILE="$2"
+                shift 2
+                ;;
+            --no-restart)
+                AUTO_RESTART=false
+                shift
+                ;;
+            -h|--help)
+                echo "Usage: $0 [OPTIONS] [SERVICE...]"
+                echo "Options:"
+                echo "  -s, --services 'SVC1 SVC2'           Specify list of services to audit"
+                echo "  -o, --output FILE, --log-file FILE   Write health status and alert logs to file"
+                echo "      --no-restart                     Do not attempt automated restarts on dead services"
+                echo "  -h, --help                           Show this help message and exit"
+                exit 0
+                ;;
+            *)
+                if [[ "$1" != -* ]]; then
+                    if (( ${#custom_services[@]} == 0 )); then
+                        SERVICES=()
+                    fi
+                    SERVICES+=("$1")
+                    shift
+                else
+                    log_error "Unknown argument: $1"
+                    exit 1
+                fi
+                ;;
+        esac
+    done
 }
 
 main() {
+    parse_args "$@"
+
+    if [[ -n "$LOG_FILE" ]]; then
+        mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+        : > "$LOG_FILE"
+    fi
+
     print_header
     audit_services
 }
