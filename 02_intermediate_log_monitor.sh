@@ -6,63 +6,70 @@
 
 set -euo pipefail
 
-timestamp_prefix() {
-    printf "[%s]" "$(date --iso-8601=seconds 2>/dev/null || date '+%Y-%m-%d %H:%M:%S')"
-}
-
-WATCH_LOG="${1:-/var/log/syslog}"
+WATCH_LOG="/var/log/syslog"
 REPORT_DIR="./log_reports"
 MAX_LOG_SIZE_MB=50
 ALERT_KEYWORDS=("ERROR" "CRITICAL" "FATAL" "FAILED" "panic" "OOM")
 SCRIPT_LOG="./monitor_activity.log"
+LOG_FILE="${REPORT_LOG_FILE:-}"
+MODE="menu"
 
-RED="\033[0;31m";    GREEN="\033[0;32m";   YELLOW="\033[1;33m"
-CYAN="\033[0;36m";   BLUE="\033[0;34m";    BOLD="\033[1m";   RESET="\033[0m"
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+YELLOW="\033[1;33m"
+CYAN="\033[0;36m"
+BLUE="\033[0;34m"
+BOLD="\033[1m"
+RESET="\033[0m"
+
+log_info() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${GREEN}[INFO]${RESET} [${ts}] ${msg}"
+    echo "[INFO] [${ts}] ${msg}" >> "$SCRIPT_LOG" 2>/dev/null || true
+    [[ -n "$LOG_FILE" ]] && echo "[INFO] [${ts}] ${msg}" >> "$LOG_FILE"
+}
+
+log_warn() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${YELLOW}[WARN]${RESET} [${ts}] ${msg}"
+    echo "[WARN] [${ts}] ${msg}" >> "$SCRIPT_LOG" 2>/dev/null || true
+    [[ -n "$LOG_FILE" ]] && echo "[WARN] [${ts}] ${msg}" >> "$LOG_FILE"
+}
+
+log_error() {
+    local msg="$1"
+    local ts
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${RED}[ERROR]${RESET} [${ts}] ${msg}" >&2
+    echo "[ERROR] [${ts}] ${msg}" >> "$SCRIPT_LOG" 2>/dev/null || true
+    [[ -n "$LOG_FILE" ]] && echo "[ERROR] [${ts}] ${msg}" >> "$LOG_FILE"
+}
 
 write_log() {
-    local LEVEL="$1"
-    local MESSAGE="$2"
-    local TIMESTAMP
-    TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-
-    echo "[${TIMESTAMP}] [${LEVEL}] ${MESSAGE}" | tee -a "$SCRIPT_LOG"
+    local level="$1"
+    local msg="$2"
+    case "$level" in
+        ERROR|CRITICAL|FATAL) log_error "$msg" ;;
+        WARN|WARNING) log_warn "$msg" ;;
+        *) log_info "$msg" ;;
+    esac
 }
 
 cleanup() {
     echo ""
-    write_log "INFO" "Script exiting. All background jobs will be stopped."
+    log_info "Script exiting. Stopping background tasks."
     jobs -p | xargs -r kill 2>/dev/null || true
-    echo -e "${CYAN}Cleanup done. Goodbye!${RESET}"
+    echo -e "${CYAN}Cleanup completed.${RESET}"
 }
 
 trap cleanup EXIT INT TERM
 
-validate_inputs() {
-    write_log "INFO" "Validating inputs..."
-
-    if [[ ! -f "$WATCH_LOG" ]]; then
-        write_log "ERROR" "Log file not found: $WATCH_LOG"
-        echo -e "${RED}Creating a demo log file for practice...${RESET}"
-
-        mkdir -p "$(dirname "$WATCH_LOG")" 2>/dev/null || true
-        WATCH_LOG="./demo_app.log"
-        generate_demo_log
-    fi
-
-    local REQUIRED_TOOLS=("grep" "awk" "sed" "wc" "du" "tail")
-
-    for TOOL in "${REQUIRED_TOOLS[@]}"; do
-        if ! command -v "$TOOL" &>/dev/null; then
-            write_log "ERROR" "Required tool not found: $TOOL"
-            exit 1
-        fi
-    done
-
-    write_log "INFO" "All inputs validated successfully."
-}
-
 generate_demo_log() {
-    write_log "INFO" "Generating demo log: $WATCH_LOG"
+    log_info "Generating synthetic demo log: $WATCH_LOG"
 
     local LOG_LINES=(
         "INFO  nginx: Request GET /api/users 200 OK in 45ms"
@@ -87,19 +94,38 @@ generate_demo_log() {
         "panic kernel: BUG: unable to handle kernel paging request at ffffffff"
     )
 
-    > "$WATCH_LOG"
+    : > "$WATCH_LOG"
     for LINE in "${LOG_LINES[@]}"; do
         echo "$(date '+%b %d %H:%M:%S') $(hostname) ${LINE}" >> "$WATCH_LOG"
-        sleep 0.05
     done
 
-    write_log "INFO" "Demo log created with ${#LOG_LINES[@]} entries."
+    log_info "Demo log created with ${#LOG_LINES[@]} entries."
+}
+
+validate_inputs() {
+    log_info "Validating monitor environment and dependencies..."
+
+    if [[ ! -f "$WATCH_LOG" ]]; then
+        log_warn "Target log file not found: $WATCH_LOG"
+        WATCH_LOG="./demo_app.log"
+        mkdir -p "$(dirname "$WATCH_LOG")" 2>/dev/null || true
+        generate_demo_log
+    fi
+
+    local REQUIRED_TOOLS=("grep" "awk" "sed" "wc" "du" "tail")
+    for TOOL in "${REQUIRED_TOOLS[@]}"; do
+        if ! command -v "$TOOL" &>/dev/null; then
+            log_error "Required tool not found: $TOOL"
+            exit 1
+        fi
+    done
+
+    log_info "Environment validated successfully."
 }
 
 check_log_size() {
     local SIZE_MB
     SIZE_MB=$(du -m "$WATCH_LOG" 2>/dev/null | awk '{print $1}')
-
     if [[ "$SIZE_MB" -ge "$MAX_LOG_SIZE_MB" ]]; then
         return 0
     else
@@ -109,7 +135,7 @@ check_log_size() {
 
 rotate_log() {
     local ARCHIVE_NAME="${WATCH_LOG}.$(date '+%Y%m%d_%H%M%S').bak"
-    write_log "WARN" "Log file is large. Rotating to: $ARCHIVE_NAME"
+    log_warn "Log size exceeds threshold (${MAX_LOG_SIZE_MB}MB). Rotating to: $ARCHIVE_NAME"
 
     mv "$WATCH_LOG" "$ARCHIVE_NAME"
     touch "$WATCH_LOG"
@@ -117,7 +143,7 @@ rotate_log() {
     local GZIP_PID=$!
     disown "$GZIP_PID" 2>/dev/null || true
 
-    write_log "INFO" "Rotation complete. Compressing old log in background (PID: ${GZIP_PID})."
+    log_info "Rotation complete. Compressing archive in background (PID: ${GZIP_PID})."
 }
 
 analyze_log() {
@@ -125,10 +151,9 @@ analyze_log() {
     local REPORT="${REPORT_DIR}/report_$(date '+%Y%m%d_%H%M%S').txt"
     local TOTAL_LINES ERROR_COUNT WARN_COUNT
 
-    write_log "INFO" "Starting analysis of: $WATCH_LOG"
+    log_info "Starting log analysis on: $WATCH_LOG"
 
     TOTAL_LINES=$(wc -l < "$WATCH_LOG")
-
     ERROR_COUNT=$(grep -icE "error|critical|fatal|failed|panic|oom" "$WATCH_LOG" 2>/dev/null || true)
     ERROR_COUNT=${ERROR_COUNT:-0}
     WARN_COUNT=$(grep -ic "warn" "$WATCH_LOG" 2>/dev/null || true)
@@ -147,60 +172,43 @@ analyze_log() {
         printf "  %-25s : %d\n" "Error/Critical lines" "$ERROR_COUNT"
         printf "  %-25s : %d\n" "Warning lines"     "$WARN_COUNT"
         echo ""
+        echo "  KEYWORD BREAKDOWN"
+        echo "  -----------------"
+        for KEYWORD in "${ALERT_KEYWORDS[@]}"; do
+            local COUNT
+            COUNT=$(grep -i "$KEYWORD" "$WATCH_LOG" 2>/dev/null | wc -l | tr -d ' ') || true
+            COUNT=${COUNT:-0}
+            printf "  %-12s : %d occurrences\n" "$KEYWORD" "$COUNT"
+        done
+        echo ""
+        echo "  ALL ERROR/CRITICAL LINES"
+        echo "  ------------------------"
+        grep -iE "error|critical|fatal|failed|panic|oom" "$WATCH_LOG" 2>/dev/null \
+            | awk '{print NR". "$0}' || echo "  None found."
+        echo ""
+        echo "  TOP 5 LOG SOURCES"
+        echo "  -----------------"
+        awk '{print $4}' "$WATCH_LOG" 2>/dev/null \
+            | sort \
+            | uniq -c \
+            | sort -rn \
+            | head -5 \
+            | awk '{printf "  %-5s hits : %s\n", $1, $2}' || true
+        echo ""
+        echo "  END OF REPORT"
+        echo "========================================================"
     } > "$REPORT"
 
-    echo "  KEYWORD BREAKDOWN" >> "$REPORT"
-    echo "  -----------------" >> "$REPORT"
+    log_info "Analysis complete. Total: ${TOTAL_LINES}, Errors: ${ERROR_COUNT}, Warnings: ${WARN_COUNT}."
+    log_info "Detailed report saved to: ${REPORT}"
 
-    for KEYWORD in "${ALERT_KEYWORDS[@]}"; do
-        local COUNT
-        COUNT=$(grep -i "$KEYWORD" "$WATCH_LOG" 2>/dev/null | wc -l | tr -d ' ') || true
-        COUNT=${COUNT:-0}
-        printf "  %-12s : %d occurrences\n" "$KEYWORD" "$COUNT" >> "$REPORT"
-    done
-
-    echo "" >> "$REPORT"
-
-    echo "  ALL ERROR/CRITICAL LINES" >> "$REPORT"
-    echo "  ------------------------" >> "$REPORT"
-
-    grep -iE "error|critical|fatal|failed|panic|oom" "$WATCH_LOG" 2>/dev/null \
-        | awk '{print NR". "$0}' \
-        >> "$REPORT" || echo "  None found." >> "$REPORT"
-
-    echo "" >> "$REPORT"
-
-    echo "  TOP 5 LOG SOURCES (by 4th field)" >> "$REPORT"
-    echo "  ---------------------------------" >> "$REPORT"
-
-    awk '{print $4}' "$WATCH_LOG" \
-        | sort \
-        | uniq -c \
-        | sort -rn \
-        | head -5 \
-        | awk '{printf "  %-5s hits : %s\n", $1, $2}' \
-        >> "$REPORT"
-
-    echo "" >> "$REPORT"
-    echo "  END OF REPORT" >> "$REPORT"
-    echo "========================================================"  >> "$REPORT"
-
-    echo ""
-    echo -e "${BOLD}${CYAN}📊  ANALYSIS COMPLETE${RESET}"
-    echo -e "  Total Lines  : ${BOLD}${TOTAL_LINES}${RESET}"
-
-    if [[ "$ERROR_COUNT" -gt 0 ]]; then
-        echo -e "  Errors Found : ${RED}${BOLD}${ERROR_COUNT}${RESET}"
-    else
-        echo -e "  Errors Found : ${GREEN}${BOLD}0 — All clean!${RESET}"
+    if [[ -n "$LOG_FILE" ]]; then
+        cat "$REPORT" >> "$LOG_FILE"
     fi
-
-    echo -e "  Warnings     : ${YELLOW}${WARN_COUNT}${RESET}"
-    echo -e "  Report saved : ${CYAN}${REPORT}${RESET}"
 }
 
 live_tail() {
-    echo -e "\n${BOLD}${CYAN}👁  Live Log Watch${RESET} — ${WATCH_LOG}"
+    log_info "Initiating live stream monitoring on: ${WATCH_LOG}"
     echo -e "${YELLOW}  Press Ctrl+C to stop watching.${RESET}\n"
 
     tail -f "$WATCH_LOG" 2>/dev/null | sed \
@@ -230,57 +238,102 @@ show_menu() {
         echo -e "${YELLOW}Watching: ${WATCH_LOG}${RESET}"
         echo -ne "  Enter your choice [1-5]: "
 
-        read -r CHOICE
+        if ! read -r CHOICE; then
+            break
+        fi
 
         case "$CHOICE" in
-            1)
-                analyze_log
-                ;;
-            2)
-                live_tail
-                ;;
+            1) analyze_log ;;
+            2) live_tail ;;
             3)
                 if check_log_size; then
-                    echo -e "${RED}  Log is too large (>= ${MAX_LOG_SIZE_MB}MB). Rotating...${RESET}"
                     rotate_log
                 else
+                    local SIZE
                     SIZE=$(du -m "$WATCH_LOG" | awk '{print $1}')
-                    echo -e "${GREEN}  Log size is fine: ${SIZE}MB (limit: ${MAX_LOG_SIZE_MB}MB)${RESET}"
+                    log_info "Log size within limits: ${SIZE}MB (limit: ${MAX_LOG_SIZE_MB}MB)"
                 fi
                 ;;
             4)
                 echo ""
-                echo -e "${CYAN}  Last 20 lines of ${WATCH_LOG}:${RESET}"
-                echo "  ──────────────────────────────────────────"
+                echo -e "${CYAN}Last 20 lines of ${WATCH_LOG}:${RESET}"
+                echo "──────────────────────────────────────────"
                 tail -n 20 "$WATCH_LOG"
                 ;;
             5)
-                write_log "INFO" "User chose to exit."
+                log_info "User requested exit."
                 break
                 ;;
             *)
-                echo -e "${RED}  Invalid option '$CHOICE'. Please choose 1-5.${RESET}"
+                log_warn "Invalid option '$CHOICE'. Select 1-5."
                 ;;
         esac
     done
 }
 
-main() {
-    clear
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -f|--file)
+                WATCH_LOG="$2"
+                shift 2
+                ;;
+            -a|--analyze)
+                MODE="analyze"
+                shift
+                ;;
+            -o|--output|--log-file)
+                LOG_FILE="$2"
+                shift 2
+                ;;
+            -h|--help)
+                echo "Usage: $0 [OPTIONS] [LOG_FILE]"
+                echo "Options:"
+                echo "  -f, --file FILE                      Log file path to monitor"
+                echo "  -a, --analyze                        Run non-interactive audit analysis directly"
+                echo "  -o, --output FILE, --log-file FILE   Write monitoring metrics and output to log file"
+                echo "  -h, --help                           Show this help message and exit"
+                exit 0
+                ;;
+            *)
+                if [[ "$1" != -* ]]; then
+                    WATCH_LOG="$1"
+                    shift
+                else
+                    log_error "Unknown option: $1"
+                    exit 1
+                fi
+                ;;
+        esac
+    done
+}
+
+print_header() {
     echo -e "${BOLD}${GREEN}"
     echo "  ╔════════════════════════════════════════════════╗"
     echo "  ║   🔍  Intermediate Log Monitor Script v1.0    ║"
     echo "  ╚════════════════════════════════════════════════╝"
     echo -e "${RESET}"
+    echo "Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+    [[ -n "$LOG_FILE" ]] && echo "Log Target: $LOG_FILE"
+}
 
-    if [[ $# -gt 0 ]]; then
-        write_log "INFO" "Custom log file provided: $1"
-    else
-        write_log "INFO" "No log file specified. Using default: $WATCH_LOG"
+main() {
+    parse_args "$@"
+
+    if [[ -n "$LOG_FILE" ]]; then
+        mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+        : > "$LOG_FILE"
     fi
 
+    print_header
     validate_inputs
-    show_menu
+
+    if [[ "$MODE" == "analyze" ]] || [[ ! -t 0 ]]; then
+        analyze_log
+    else
+        show_menu
+    fi
 }
 
 main "$@"
